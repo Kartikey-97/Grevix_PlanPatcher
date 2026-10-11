@@ -3,8 +3,6 @@
 import React, { useState } from "react";
 import type { Plan } from "../lib/schemas/plan.schema";
 import { schedulePlan } from "../lib/engine/schedule";
-import { getDomainValidators } from "../lib/engine/validate-constraints";
-import "../lib/engine/event-planning-validator";
 import {
   Calendar,
   Coins,
@@ -12,9 +10,7 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
-  Info,
   ShieldCheck,
-  ShieldAlert,
 } from "lucide-react";
 import { PlanTimeline } from "./plan/PlanTimeline";
 
@@ -45,9 +41,6 @@ export function PlanOverview({ plan }: PlanOverviewProps) {
       : null;
 
   const isDemo = plan.id === "campus-tech-fest" || plan.name === "Campus Tech Fest";
-  const domainName = plan.domain || "generic";
-  const domainValidators = getDomainValidators(domainName);
-  const isDomainVerified = domainValidators.length > 0;
 
   return (
     <section className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 space-y-6">
@@ -74,25 +67,6 @@ export function PlanOverview({ plan }: PlanOverviewProps) {
           <p className="text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
             {plan.description}
           </p>
-        </div>
-
-        <div className="flex flex-col sm:items-end gap-1.5">
-          <div className="flex items-center gap-1.5 text-xs text-amber-800 bg-amber-50/80 border border-amber-200/60 px-3 py-1.5 rounded-lg">
-            <Info className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
-            <span>Fictional sample data. No live booking or real-world verification implied.</span>
-          </div>
-
-          {isDomainVerified ? (
-            <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
-              <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0 text-emerald-600" />
-              <span>Domain Rules Active ({domainName}): Automated constraints verified.</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-[11px] text-amber-900 bg-amber-100/70 border border-amber-300/80 px-2.5 py-1 rounded-md">
-              <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 text-amber-700" />
-              <span>Unregistered Domain ({domainName}): Uses standard graph & resource rules.</span>
-            </div>
-          )}
         </div>
       </div>
 

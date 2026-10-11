@@ -15,6 +15,8 @@ import {
   GitBranch,
 } from "lucide-react";
 
+import { useTheme } from "../../lib/theme-context";
+
 export interface ConceptAEditorialProps {
   initialDisrupted?: boolean;
   initialTheme?: "dark" | "light";
@@ -23,28 +25,19 @@ export interface ConceptAEditorialProps {
 
 export function ConceptAEditorial({
   initialDisrupted = false,
-  initialTheme = "dark",
+  initialTheme,
   showNav = true,
 }: ConceptAEditorialProps = {}) {
+  const { theme: currentTheme, toggleTheme: globalToggleTheme } = useTheme();
   const [isDisrupted, setIsDisrupted] = useState<boolean>(initialDisrupted);
-  const [theme, setTheme] = useState<"dark" | "light">(initialTheme);
+  const theme = initialTheme ?? currentTheme;
 
   const isLight = theme === "light";
   const teal = isLight ? "#0d9488" : "#2dd4bf";
   const tealLight = isLight ? "#14b8a6" : "#5eead4";
 
-  // Sync with document element for global theme styling
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    if (theme === "light") {
-      document.documentElement.classList.add("light");
-    } else {
-      document.documentElement.classList.remove("light");
-    }
-  }, [theme]);
-
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    globalToggleTheme();
   };
 
   return (

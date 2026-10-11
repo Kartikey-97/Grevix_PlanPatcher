@@ -11,9 +11,12 @@ import {
   ExternalLink,
   Layers,
   Sparkles,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { CONCEPTS } from "./design-lab-data";
 import type { ConceptId } from "./types";
+import { useTheme } from "../../lib/theme-context";
 
 interface DesignLabNavProps {
   activeConceptId: ConceptId;
@@ -26,6 +29,7 @@ export function DesignLabNav({
   onSelectConcept,
   onOpenComparison,
 }: DesignLabNavProps) {
+  const { toggleTheme, isLight } = useTheme();
   const currentMeta = CONCEPTS[activeConceptId];
 
   return (
@@ -115,6 +119,24 @@ export function DesignLabNav({
             <span>Live Workspace</span>
             <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
           </Link>
+
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${isLight ? "dark" : "light"} mode`}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all hover:scale-105 active:scale-95 ${
+              isLight
+                ? "border-slate-300 bg-white text-slate-700 shadow-xs hover:bg-slate-50"
+                : "border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600 hover:text-white"
+            }`}
+          >
+            {isLight ? (
+              <Moon className="h-3.5 w-3.5 text-slate-700" />
+            ) : (
+              <Sun className="h-3.5 w-3.5 text-teal-400" />
+            )}
+          </button>
         </div>
       </div>
     </header>

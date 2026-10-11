@@ -27,16 +27,14 @@ describe("Milestone S7: PlanPatch Interactive Workspace UI Components", () => {
   registerEventPlanningValidator();
 
   describe("1. PlanOverview Component", () => {
-    it("renders baseline plan name, domain, metrics, and disclaimer", () => {
+    it("renders baseline plan name, domain, and metrics", () => {
       const html = renderToString(<PlanOverview plan={plan} />);
 
       expect(html).toContain("Campus Tech Fest");
       expect(html).toContain("event-planning");
-      expect(html).toContain("Domain Rules Active");
       expect(html).toContain("Tasks");
       expect(html).toContain("Cost &amp; Budget");
       expect(html).toContain("Schedule &amp; Deadline");
-      expect(html).toContain("Fictional sample data");
     });
 
     it("renders cleanly when budget and deadline constraints are unspecified", () => {
@@ -54,14 +52,13 @@ describe("Milestone S7: PlanPatch Interactive Workspace UI Components", () => {
       expect(html).not.toContain("undefined");
     });
 
-    it("distinguishes unregistered domain badge for custom domain plans", () => {
+    it("displays domain badge for custom domain plans", () => {
       const planUnregistered = {
         ...plan,
         domain: "machine-learning-ops",
       };
       const html = renderToString(<PlanOverview plan={planUnregistered} />);
 
-      expect(html).toContain("Unregistered Domain");
       expect(html).toContain("machine-learning-ops");
     });
   });

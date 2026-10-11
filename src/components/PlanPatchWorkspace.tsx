@@ -16,6 +16,7 @@ import { InterpretationReview } from "./InterpretationReview";
 import { RecoveryComparison } from "./RecoveryComparison";
 import { DiffViewer } from "./DiffViewer";
 import { CustomPlanBuilder } from "./CustomPlanBuilder";
+import { useTheme } from "../lib/theme-context";
 import {
   ShieldAlert,
   Sparkles,
@@ -30,11 +31,14 @@ import {
   ShieldCheck,
   FileCode,
   Sliders,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 type PlanMode = "demo" | "custom_builder" | "custom_active";
 
 export function PlanPatchWorkspace() {
+  const { theme, toggleTheme, isLight } = useTheme();
   const [demoBaseline] = useState<Plan>(() => getCanonicalPlan());
   const [customPlan, setCustomPlan] = useState<Plan | null>(null);
 
@@ -321,10 +325,10 @@ export function PlanPatchWorkspace() {
       : undefined;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-16">
+    <div className={`min-h-screen transition-colors duration-200 pb-16 ${isLight ? "bg-slate-50 text-slate-900" : "bg-[#070b12] text-slate-100"}`}>
       {/* Top Application Bar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className={`border-b sticky top-0 z-30 transition-colors backdrop-blur-md ${isLight ? "bg-white/90 border-slate-200/90" : "bg-[#0c1120]/90 border-slate-800/90"}`}>
+        <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <a href="/" className="flex items-center gap-3 group">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-950 font-black text-lg tracking-wider shadow-sm transition-opacity group-hover:opacity-80" style={{ background: "linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%)" }}>
@@ -332,14 +336,14 @@ export function PlanPatchWorkspace() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-base font-bold text-slate-900 tracking-tight group-hover:text-teal-700 transition-colors">
+                  <h1 className={`text-base font-bold tracking-tight transition-colors ${isLight ? "text-slate-900 group-hover:text-teal-700" : "text-white group-hover:text-teal-300"}`}>
                     PlanPatch
                   </h1>
-                  <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded border ${isLight ? "text-slate-500 bg-slate-100 border-slate-200" : "text-slate-400 bg-slate-800/80 border-slate-700"}`}>
                     Workspace
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   Deterministic recovery engine &amp; AI disruption interpreter
                 </p>
               </div>
@@ -358,7 +362,7 @@ export function PlanPatchWorkspace() {
               <button
                 type="button"
                 onClick={handleResetFlow}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 rounded-lg transition"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${isLight ? "text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70" : "text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700"}`}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Reset Workspace
@@ -367,26 +371,44 @@ export function PlanPatchWorkspace() {
 
             <a
               href="/design-lab"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200/80 rounded-lg transition"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition border ${isLight ? "text-teal-800 bg-teal-50 hover:bg-teal-100 border-teal-200/80" : "text-teal-300 bg-teal-950/60 hover:bg-teal-900/60 border-teal-800/80"}`}
             >
               <Sparkles className="w-3.5 h-3.5 text-teal-600" />
               Design Lab
             </a>
+
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${isLight ? "dark" : "light"} mode`}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all hover:scale-105 active:scale-95 ${
+                isLight
+                  ? "border-slate-200 bg-white text-slate-700 shadow-xs hover:bg-slate-50"
+                  : "border-slate-800 bg-slate-900/90 text-slate-300 hover:border-slate-700 hover:text-white"
+              }`}
+            >
+              {isLight ? (
+                <Moon className="h-4 w-4 text-slate-700" />
+              ) : (
+                <Sun className="h-4 w-4 text-teal-400" />
+              )}
+            </button>
           </div>
         </div>
       </header>
 
       {/* Plan-Selection Entry Point Navigation */}
-      <div className="bg-slate-50/80 border-b border-slate-200/90 px-4 sm:px-6 lg:px-8 py-2.5">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-white rounded-xl border border-slate-200/80 shadow-xs">
+      <div className={`border-b px-4 sm:px-6 lg:px-8 py-2.5 transition-colors ${isLight ? "bg-slate-50/80 border-slate-200/90" : "bg-[#090e18] border-slate-800/80"}`}>
+        <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className={`flex flex-wrap items-center gap-1.5 p-1 rounded-xl border shadow-xs ${isLight ? "bg-white border-slate-200/80" : "bg-[#111827] border-slate-800"}`}>
             <button
               type="button"
               onClick={handleSelectDemoMode}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                 planMode === "demo"
-                  ? "bg-slate-900 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                  ? isLight ? "bg-slate-900 text-white shadow-xs" : "bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-xs"
+                  : isLight ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
               }`}
             >
               <Calendar
@@ -407,8 +429,8 @@ export function PlanPatchWorkspace() {
               onClick={handleOpenCustomBuilder}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                 planMode === "custom_builder"
-                  ? "bg-slate-900 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                  ? isLight ? "bg-slate-900 text-white shadow-xs" : "bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-xs"
+                  : isLight ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
               }`}
             >
               <Sparkles
@@ -430,8 +452,8 @@ export function PlanPatchWorkspace() {
                 onClick={handleSelectCustomActiveMode}
                 className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                   planMode === "custom_active"
-                    ? "bg-slate-900 text-white shadow-xs"
-                    : "text-teal-700 hover:text-teal-900 hover:bg-teal-50"
+                    ? isLight ? "bg-slate-900 text-white shadow-xs" : "bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-xs"
+                    : isLight ? "text-teal-700 hover:text-teal-900 hover:bg-teal-50" : "text-teal-400 hover:text-teal-200 hover:bg-teal-950/40"
                 }`}
               >
                 <Layers
@@ -451,18 +473,18 @@ export function PlanPatchWorkspace() {
 
           <div className="flex items-center gap-2">
             {planMode === "demo" ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border border-teal-500/30 bg-teal-50 text-teal-800">
-                <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? "border-teal-500/30 bg-teal-50 text-teal-800" : "border-teal-500/30 bg-teal-950/50 text-teal-300"}`}>
+                <ShieldCheck className="w-3.5 h-3.5 text-teal-500" />
                 Campus Tech Fest Demo Fixture
               </span>
             ) : planMode === "custom_builder" ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border border-teal-500/30 bg-teal-50 text-teal-800">
-                <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? "border-teal-500/30 bg-teal-50 text-teal-800" : "border-teal-500/30 bg-teal-950/50 text-teal-300"}`}>
+                <Sparkles className="w-3.5 h-3.5 text-teal-500" />
                 Plan Designer Mode (AI &amp; Manual)
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border border-teal-500/30 bg-teal-50 text-teal-800">
-                <Layers className="w-3.5 h-3.5 text-teal-600" />
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${isLight ? "border-teal-500/30 bg-teal-50 text-teal-800" : "border-teal-500/30 bg-teal-950/50 text-teal-300"}`}>
+                <Layers className="w-3.5 h-3.5 text-teal-500" />
                 Custom Plan Active: {customPlan?.name}
               </span>
             )}
@@ -471,7 +493,7 @@ export function PlanPatchWorkspace() {
       </div>
 
       {/* Main Content Workspace */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
+      <main className="w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6 min-w-0">
         {/* Global Error Banner */}
         {globalError && (
           <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-800 flex items-start gap-3">
@@ -564,12 +586,12 @@ export function PlanPatchWorkspace() {
       </main>
 
       {/* Footer */}
-      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-6 border-t border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className={`max-w-7xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-6 border-t text-xs flex flex-col sm:flex-row items-center justify-between gap-3 ${isLight ? "border-slate-200 text-slate-500" : "border-slate-800 text-slate-400"}`}>
         <div>
           <strong>PlanPatch</strong> &bull; Change-aware planning and deterministic plan recovery
           workspace.
         </div>
-        <div className="flex items-center gap-4 text-[11px] text-slate-400">
+        <div className={`flex items-center gap-4 text-[11px] ${isLight ? "text-slate-400" : "text-slate-500"}`}>
           <span>AI Interpretation (Gemini Flash)</span>
           <span>&bull;</span>
           <span>Exact Topological Graph Scheduling</span>
