@@ -1,0 +1,114 @@
+{
+  "status": "PASS",
+  "output": "/mnt/data/planpatch_fixture_pack/expected-results.json",
+  "baseline": {
+    "taskCount": 16,
+    "totalCost": 18000,
+    "budgetLimit": 25000,
+    "deadlineHours": 288,
+    "earliestFinishHours": 132.0,
+    "deadlineSlackHours": 156.0,
+    "prioritySum": 64,
+    "earliestTimes": {
+      "T01": {
+        "startHours": 0.0,
+        "finishHours": 2.0
+      },
+      "T02": {
+        "startHours": 2.0,
+        "finishHours": 6.0
+      },
+      "T09": {
+        "startHours": 2.0,
+        "finishHours": 10.0
+      },
+      "T03": {
+        "startHours": 6.0,
+        "finishHours": 30.0
+      },
+      "T04": {
+        "startHours": 6.0,
+        "finishHours": 42.0
+      },
+      "T11": {
+        "startHours": 6.0,
+        "finishHours": 30.0
+      },
+      "T10": {
+        "startHours": 10.0,
+        "finishHours": 58.0
+      },
+      "T05": {
+        "startHours": 30.0,
+        "finishHours": 110.0
+      },
+      "T06": {
+        "startHours": 30.0,
+        "finishHours": 42.0
+      },
+      "T08": {
+        "startHours": 30.0,
+        "finishHours": 34.0
+      },
+      "T16": {
+        "startHours": 30.0,
+        "finishHours": 32.0
+      },
+      "T07": {
+        "startHours": 110.0,
+        "finishHours": 118.0
+      },
+      "T12": {
+        "startHours": 110.0,
+        "finishHours": 122.0
+      },
+      "T13": {
+        "startHours": 110.0,
+        "finishHours": 118.0
+      },
+      "T14": {
+        "startHours": 118.0,
+        "finishHours": 124.0
+      },
+      "T15": {
+        "startHours": 124.0,
+        "finishHours": 132.0
+      }
+    },
+    "criticalPathOne": [
+      "T01",
+      "T02",
+      "T03",
+      "T05",
+      "T07",
+      "T14",
+      "T15"
+    ],
+    "criticalPathTwo": [
+      "T01",
+      "T02",
+      "T03",
+      "T05",
+      "T13",
+      "T14",
+      "T15"
+    ]
+  },
+  "winners": {
+    "S1-venue-cancelled": {
+      "preserve_plan": "S1-A-community-hall",
+      "minimize_spending": "S1-B-campus-auditorium",
+      "protect_deadline": "S1-A-community-hall"
+    },
+    "S2-budget-cut": {
+      "preserve_plan": "S2-A-lecture-hall-lean",
+      "minimize_spending": "S2-B-department-hall-lean",
+      "protect_deadline": "S2-A-lecture-hall-lean"
+    },
+    "S3-deadline-moved-earlier": {
+      "preserve_plan": "S3-A-early-registration-close",
+      "minimize_spending": "S3-A-early-registration-close",
+      "protect_deadline": "S3-B-fast-track-venue-and-registration"
+    }
+  }
+}

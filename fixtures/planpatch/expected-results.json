@@ -1,0 +1,779 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedBy": "verify_fixtures.py",
+  "baseline": {
+    "taskCount": 16,
+    "totalCost": 18000,
+    "budgetLimit": 25000,
+    "deadlineHours": 288,
+    "earliestFinishHours": 132.0,
+    "deadlineSlackHours": 156.0,
+    "prioritySum": 64,
+    "earliestTimes": {
+      "T01": {
+        "startHours": 0.0,
+        "finishHours": 2.0
+      },
+      "T02": {
+        "startHours": 2.0,
+        "finishHours": 6.0
+      },
+      "T09": {
+        "startHours": 2.0,
+        "finishHours": 10.0
+      },
+      "T03": {
+        "startHours": 6.0,
+        "finishHours": 30.0
+      },
+      "T04": {
+        "startHours": 6.0,
+        "finishHours": 42.0
+      },
+      "T11": {
+        "startHours": 6.0,
+        "finishHours": 30.0
+      },
+      "T10": {
+        "startHours": 10.0,
+        "finishHours": 58.0
+      },
+      "T05": {
+        "startHours": 30.0,
+        "finishHours": 110.0
+      },
+      "T06": {
+        "startHours": 30.0,
+        "finishHours": 42.0
+      },
+      "T08": {
+        "startHours": 30.0,
+        "finishHours": 34.0
+      },
+      "T16": {
+        "startHours": 30.0,
+        "finishHours": 32.0
+      },
+      "T07": {
+        "startHours": 110.0,
+        "finishHours": 118.0
+      },
+      "T12": {
+        "startHours": 110.0,
+        "finishHours": 122.0
+      },
+      "T13": {
+        "startHours": 110.0,
+        "finishHours": 118.0
+      },
+      "T14": {
+        "startHours": 118.0,
+        "finishHours": 124.0
+      },
+      "T15": {
+        "startHours": 124.0,
+        "finishHours": 132.0
+      }
+    },
+    "criticalPathOne": [
+      "T01",
+      "T02",
+      "T03",
+      "T05",
+      "T07",
+      "T14",
+      "T15"
+    ],
+    "criticalPathTwo": [
+      "T01",
+      "T02",
+      "T03",
+      "T05",
+      "T13",
+      "T14",
+      "T15"
+    ]
+  },
+  "scenarios": [
+    {
+      "scenarioId": "S1-venue-cancelled",
+      "title": "Venue cancelled",
+      "purpose": "Test field-aware propagation and preserve-vs-cheaper trade-offs.",
+      "baselineAfterDisruption": {
+        "totalCostBeforePatch": 18000,
+        "budgetLimit": 25000,
+        "deadlineHours": 288,
+        "originalFinishHours": 132.0,
+        "originalTaskPrioritySum": 64,
+        "baselineValidation": {
+          "budgetPass": true,
+          "deadlinePass": true,
+          "overallHardConstraintsPass": true
+        },
+        "note": "Initial feasibility is reevaluated against the scenario's changed constraint; schedule start times are calculated from task durations and dependencies."
+      },
+      "candidates": [
+        {
+          "candidateId": "S1-A-community-hall",
+          "label": "Community Hall — preserve one-session event",
+          "changedTaskIds": [
+            "T03",
+            "T07",
+            "T08"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "projectedTotalCost": 20000,
+          "budgetLimit": 25000,
+          "budgetMargin": 5000,
+          "taskCount": 16,
+          "earliestProjectFinishHours": 134.0,
+          "deadlineHours": 288,
+          "deadlineSlackHours": 154.0,
+          "movedTaskStartTimes": [
+            {
+              "taskId": "T05",
+              "priority": 5,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T06",
+              "priority": 4,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T08",
+              "priority": 4,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T16",
+              "priority": 1,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T07",
+              "priority": 3,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T12",
+              "priority": 4,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T13",
+              "priority": 4,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T14",
+              "priority": 5,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T15",
+              "priority": 5,
+              "absoluteStartShiftHours": 2.0
+            }
+          ],
+          "weightedMeanAbsoluteStartShiftHours": 2.0,
+          "metrics": {
+            "changeFootprint_E": 0.1875,
+            "lostTaskValue_L": 0.0,
+            "budgetUsage_C": 0.8,
+            "movement_M": 0.25,
+            "deadlinePressure_Q": 0.0,
+            "scheduleDisruption_S": 0.175,
+            "uncertainty_R": 0.2
+          },
+          "unknownFacts": [
+            "venue_availability"
+          ],
+          "verificationStatus": "provisional",
+          "validation": {
+            "budgetPass": true,
+            "deadlinePass": true,
+            "capacityPass": true,
+            "accessibilityPass": true,
+            "fixedTasksPreserved": true,
+            "acyclic": true,
+            "hardConstraintsPass": true
+          },
+          "scores": {
+            "preserve_plan": 0.2625,
+            "minimize_spending": 0.5975,
+            "protect_deadline": 0.215625
+          }
+        },
+        {
+          "candidateId": "S1-B-campus-auditorium",
+          "label": "Campus Auditorium — lower cost, two sessions",
+          "changedTaskIds": [
+            "T03",
+            "T05",
+            "T07",
+            "T08",
+            "T13",
+            "T16"
+          ],
+          "removedTaskIds": [
+            "T16"
+          ],
+          "lostTaskIds": [
+            "T16"
+          ],
+          "projectedTotalCost": 17000,
+          "budgetLimit": 25000,
+          "budgetMargin": 8000,
+          "taskCount": 15,
+          "earliestProjectFinishHours": 132.0,
+          "deadlineHours": 288,
+          "deadlineSlackHours": 156.0,
+          "movedTaskStartTimes": [
+            {
+              "taskId": "T05",
+              "priority": 5,
+              "absoluteStartShiftHours": 12.0
+            },
+            {
+              "taskId": "T06",
+              "priority": 4,
+              "absoluteStartShiftHours": 12.0
+            },
+            {
+              "taskId": "T08",
+              "priority": 4,
+              "absoluteStartShiftHours": 12.0
+            },
+            {
+              "taskId": "T07",
+              "priority": 3,
+              "absoluteStartShiftHours": 8.0
+            },
+            {
+              "taskId": "T12",
+              "priority": 4,
+              "absoluteStartShiftHours": 8.0
+            },
+            {
+              "taskId": "T13",
+              "priority": 4,
+              "absoluteStartShiftHours": 8.0
+            }
+          ],
+          "weightedMeanAbsoluteStartShiftHours": 10.166667,
+          "metrics": {
+            "changeFootprint_E": 0.375,
+            "lostTaskValue_L": 0.015625,
+            "budgetUsage_C": 0.68,
+            "movement_M": 1.0,
+            "deadlinePressure_Q": 0.0,
+            "scheduleDisruption_S": 0.7,
+            "uncertainty_R": 0.4
+          },
+          "unknownFacts": [
+            "venue_availability",
+            "organizer_approval_for_two_sessions"
+          ],
+          "verificationStatus": "provisional",
+          "validation": {
+            "budgetPass": true,
+            "deadlinePass": true,
+            "capacityPass": true,
+            "accessibilityPass": true,
+            "fixedTasksPreserved": true,
+            "acyclic": true,
+            "hardConstraintsPass": true
+          },
+          "scores": {
+            "preserve_plan": 0.39740625,
+            "minimize_spending": 0.5700625,
+            "protect_deadline": 0.51659375
+          }
+        }
+      ],
+      "rankings": {
+        "preserve_plan": [
+          {
+            "rank": 1,
+            "candidateId": "S1-A-community-hall",
+            "score": 0.2625
+          },
+          {
+            "rank": 2,
+            "candidateId": "S1-B-campus-auditorium",
+            "score": 0.39740625
+          }
+        ],
+        "minimize_spending": [
+          {
+            "rank": 1,
+            "candidateId": "S1-B-campus-auditorium",
+            "score": 0.5700625
+          },
+          {
+            "rank": 2,
+            "candidateId": "S1-A-community-hall",
+            "score": 0.5975
+          }
+        ],
+        "protect_deadline": [
+          {
+            "rank": 1,
+            "candidateId": "S1-A-community-hall",
+            "score": 0.215625
+          },
+          {
+            "rank": 2,
+            "candidateId": "S1-B-campus-auditorium",
+            "score": 0.51659375
+          }
+        ]
+      }
+    },
+    {
+      "scenarioId": "S2-budget-cut",
+      "title": "Budget drops from ₹25,000 to ₹16,000",
+      "purpose": "Test a global constraint violation and alternative combinations.",
+      "baselineAfterDisruption": {
+        "totalCostBeforePatch": 18000,
+        "budgetLimit": 16000,
+        "deadlineHours": 288,
+        "originalFinishHours": 132.0,
+        "originalTaskPrioritySum": 64,
+        "baselineValidation": {
+          "budgetPass": false,
+          "deadlinePass": true,
+          "overallHardConstraintsPass": false
+        },
+        "note": "Initial feasibility is reevaluated against the scenario's changed constraint; schedule start times are calculated from task durations and dependencies."
+      },
+      "candidates": [
+        {
+          "candidateId": "S2-A-lecture-hall-lean",
+          "label": "Lecture Hall — moderate savings, no timeline shift",
+          "changedTaskIds": [
+            "T03",
+            "T06",
+            "T07",
+            "T08",
+            "T12"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "projectedTotalCost": 15700,
+          "budgetLimit": 16000,
+          "budgetMargin": 300,
+          "taskCount": 16,
+          "earliestProjectFinishHours": 132.0,
+          "deadlineHours": 288,
+          "deadlineSlackHours": 156.0,
+          "movedTaskStartTimes": [],
+          "weightedMeanAbsoluteStartShiftHours": 0.0,
+          "metrics": {
+            "changeFootprint_E": 0.3125,
+            "lostTaskValue_L": 0.0,
+            "budgetUsage_C": 0.98125,
+            "movement_M": 0.0,
+            "deadlinePressure_Q": 0.0,
+            "scheduleDisruption_S": 0.0,
+            "uncertainty_R": 0.2
+          },
+          "unknownFacts": [
+            "venue_availability"
+          ],
+          "verificationStatus": "provisional",
+          "validation": {
+            "budgetPass": true,
+            "deadlinePass": true,
+            "capacityPass": true,
+            "accessibilityPass": true,
+            "fixedTasksPreserved": true,
+            "acyclic": true,
+            "hardConstraintsPass": true
+          },
+          "scores": {
+            "preserve_plan": 0.31,
+            "minimize_spending": 0.728125,
+            "protect_deadline": 0.165
+          }
+        },
+        {
+          "candidateId": "S2-B-department-hall-lean",
+          "label": "Department Hall — largest savings, more uncertainty and delay",
+          "changedTaskIds": [
+            "T03",
+            "T06",
+            "T07",
+            "T08",
+            "T12"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "projectedTotalCost": 13500,
+          "budgetLimit": 16000,
+          "budgetMargin": 2500,
+          "taskCount": 16,
+          "earliestProjectFinishHours": 134.0,
+          "deadlineHours": 288,
+          "deadlineSlackHours": 154.0,
+          "movedTaskStartTimes": [
+            {
+              "taskId": "T05",
+              "priority": 5,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T06",
+              "priority": 4,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T08",
+              "priority": 4,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T16",
+              "priority": 1,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T07",
+              "priority": 3,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T12",
+              "priority": 4,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T13",
+              "priority": 4,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T14",
+              "priority": 5,
+              "absoluteStartShiftHours": 2.0
+            },
+            {
+              "taskId": "T15",
+              "priority": 5,
+              "absoluteStartShiftHours": 2.0
+            }
+          ],
+          "weightedMeanAbsoluteStartShiftHours": 2.0,
+          "metrics": {
+            "changeFootprint_E": 0.3125,
+            "lostTaskValue_L": 0.0,
+            "budgetUsage_C": 0.84375,
+            "movement_M": 0.25,
+            "deadlinePressure_Q": 0.0,
+            "scheduleDisruption_S": 0.175,
+            "uncertainty_R": 0.4
+          },
+          "unknownFacts": [
+            "venue_availability",
+            "basic_av_compatibility"
+          ],
+          "verificationStatus": "provisional",
+          "validation": {
+            "budgetPass": true,
+            "deadlinePass": true,
+            "capacityPass": true,
+            "accessibilityPass": true,
+            "fixedTasksPreserved": true,
+            "acyclic": true,
+            "hardConstraintsPass": true
+          },
+          "scores": {
+            "preserve_plan": 0.32875,
+            "minimize_spending": 0.650625,
+            "protect_deadline": 0.25875
+          }
+        }
+      ],
+      "rankings": {
+        "preserve_plan": [
+          {
+            "rank": 1,
+            "candidateId": "S2-A-lecture-hall-lean",
+            "score": 0.31
+          },
+          {
+            "rank": 2,
+            "candidateId": "S2-B-department-hall-lean",
+            "score": 0.32875
+          }
+        ],
+        "minimize_spending": [
+          {
+            "rank": 1,
+            "candidateId": "S2-B-department-hall-lean",
+            "score": 0.650625
+          },
+          {
+            "rank": 2,
+            "candidateId": "S2-A-lecture-hall-lean",
+            "score": 0.728125
+          }
+        ],
+        "protect_deadline": [
+          {
+            "rank": 1,
+            "candidateId": "S2-A-lecture-hall-lean",
+            "score": 0.165
+          },
+          {
+            "rank": 2,
+            "candidateId": "S2-B-department-hall-lean",
+            "score": 0.25875
+          }
+        ]
+      }
+    },
+    {
+      "scenarioId": "S3-deadline-moved-earlier",
+      "title": "Plan-readiness deadline moves from 12 days to 5 days",
+      "purpose": "Test critical-path calculations, the plan-readiness deadline, and deadline-buffer preference.",
+      "baselineAfterDisruption": {
+        "totalCostBeforePatch": 18000,
+        "budgetLimit": 25000,
+        "deadlineHours": 120,
+        "originalFinishHours": 132.0,
+        "originalTaskPrioritySum": 64,
+        "baselineValidation": {
+          "budgetPass": true,
+          "deadlinePass": false,
+          "overallHardConstraintsPass": false
+        },
+        "note": "Initial feasibility is reevaluated against the scenario's changed constraint; schedule start times are calculated from task durations and dependencies."
+      },
+      "candidates": [
+        {
+          "candidateId": "S3-A-early-registration-close",
+          "label": "Close registration earlier — least task editing",
+          "changedTaskIds": [
+            "T05"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "projectedTotalCost": 18000,
+          "budgetLimit": 25000,
+          "budgetMargin": 7000,
+          "taskCount": 16,
+          "earliestProjectFinishHours": 116.0,
+          "deadlineHours": 120,
+          "deadlineSlackHours": 4.0,
+          "movedTaskStartTimes": [
+            {
+              "taskId": "T07",
+              "priority": 3,
+              "absoluteStartShiftHours": 16.0
+            },
+            {
+              "taskId": "T12",
+              "priority": 4,
+              "absoluteStartShiftHours": 16.0
+            },
+            {
+              "taskId": "T13",
+              "priority": 4,
+              "absoluteStartShiftHours": 16.0
+            },
+            {
+              "taskId": "T14",
+              "priority": 5,
+              "absoluteStartShiftHours": 16.0
+            },
+            {
+              "taskId": "T15",
+              "priority": 5,
+              "absoluteStartShiftHours": 16.0
+            }
+          ],
+          "weightedMeanAbsoluteStartShiftHours": 16.0,
+          "metrics": {
+            "changeFootprint_E": 0.0625,
+            "lostTaskValue_L": 0.0,
+            "budgetUsage_C": 0.72,
+            "movement_M": 1.0,
+            "deadlinePressure_Q": 0.83333333,
+            "scheduleDisruption_S": 0.95,
+            "uncertainty_R": 0.2
+          },
+          "unknownFacts": [
+            "100_attendees_reachable_with_shorter_registration_window"
+          ],
+          "verificationStatus": "provisional",
+          "validation": {
+            "budgetPass": true,
+            "deadlinePass": true,
+            "capacityPass": true,
+            "accessibilityPass": true,
+            "fixedTasksPreserved": true,
+            "acyclic": true,
+            "hardConstraintsPass": true
+          },
+          "scores": {
+            "preserve_plan": 0.32525,
+            "minimize_spending": 0.56775,
+            "protect_deadline": 0.576375
+          }
+        },
+        {
+          "candidateId": "S3-B-fast-track-venue-and-registration",
+          "label": "Pre-confirmed fast-track venue plus early registration — more buffer",
+          "changedTaskIds": [
+            "T03",
+            "T05",
+            "T07",
+            "T08"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "projectedTotalCost": 20000,
+          "budgetLimit": 25000,
+          "budgetMargin": 5000,
+          "taskCount": 16,
+          "earliestProjectFinishHours": 104.0,
+          "deadlineHours": 120,
+          "deadlineSlackHours": 16.0,
+          "movedTaskStartTimes": [
+            {
+              "taskId": "T05",
+              "priority": 5,
+              "absoluteStartShiftHours": 12.0
+            },
+            {
+              "taskId": "T06",
+              "priority": 4,
+              "absoluteStartShiftHours": 12.0
+            },
+            {
+              "taskId": "T08",
+              "priority": 4,
+              "absoluteStartShiftHours": 12.0
+            },
+            {
+              "taskId": "T16",
+              "priority": 1,
+              "absoluteStartShiftHours": 12.0
+            },
+            {
+              "taskId": "T07",
+              "priority": 3,
+              "absoluteStartShiftHours": 28.0
+            },
+            {
+              "taskId": "T12",
+              "priority": 4,
+              "absoluteStartShiftHours": 28.0
+            },
+            {
+              "taskId": "T13",
+              "priority": 4,
+              "absoluteStartShiftHours": 28.0
+            },
+            {
+              "taskId": "T14",
+              "priority": 5,
+              "absoluteStartShiftHours": 28.0
+            },
+            {
+              "taskId": "T15",
+              "priority": 5,
+              "absoluteStartShiftHours": 28.0
+            }
+          ],
+          "weightedMeanAbsoluteStartShiftHours": 21.6,
+          "metrics": {
+            "changeFootprint_E": 0.25,
+            "lostTaskValue_L": 0.0,
+            "budgetUsage_C": 0.8,
+            "movement_M": 1.0,
+            "deadlinePressure_Q": 0.33333333,
+            "scheduleDisruption_S": 0.8,
+            "uncertainty_R": 0.2
+          },
+          "unknownFacts": [
+            "100_attendees_reachable_with_shorter_registration_window"
+          ],
+          "verificationStatus": "provisional",
+          "validation": {
+            "budgetPass": true,
+            "deadlinePass": true,
+            "capacityPass": true,
+            "accessibilityPass": true,
+            "fixedTasksPreserved": true,
+            "acyclic": true,
+            "hardConstraintsPass": true
+          },
+          "scores": {
+            "preserve_plan": 0.375,
+            "minimize_spending": 0.635,
+            "protect_deadline": 0.5375
+          }
+        }
+      ],
+      "rankings": {
+        "preserve_plan": [
+          {
+            "rank": 1,
+            "candidateId": "S3-A-early-registration-close",
+            "score": 0.32525
+          },
+          {
+            "rank": 2,
+            "candidateId": "S3-B-fast-track-venue-and-registration",
+            "score": 0.375
+          }
+        ],
+        "minimize_spending": [
+          {
+            "rank": 1,
+            "candidateId": "S3-A-early-registration-close",
+            "score": 0.56775
+          },
+          {
+            "rank": 2,
+            "candidateId": "S3-B-fast-track-venue-and-registration",
+            "score": 0.635
+          }
+        ],
+        "protect_deadline": [
+          {
+            "rank": 1,
+            "candidateId": "S3-B-fast-track-venue-and-registration",
+            "score": 0.5375
+          },
+          {
+            "rank": 2,
+            "candidateId": "S3-A-early-registration-close",
+            "score": 0.576375
+          }
+        ]
+      }
+    }
+  ],
+  "expectedWinners": {
+    "S1-venue-cancelled": {
+      "preserve_plan": "S1-A-community-hall",
+      "minimize_spending": "S1-B-campus-auditorium",
+      "protect_deadline": "S1-A-community-hall"
+    },
+    "S2-budget-cut": {
+      "preserve_plan": "S2-A-lecture-hall-lean",
+      "minimize_spending": "S2-B-department-hall-lean",
+      "protect_deadline": "S2-A-lecture-hall-lean"
+    },
+    "S3-deadline-moved-earlier": {
+      "preserve_plan": "S3-A-early-registration-close",
+      "minimize_spending": "S3-A-early-registration-close",
+      "protect_deadline": "S3-B-fast-track-venue-and-registration"
+    }
+  }
+}

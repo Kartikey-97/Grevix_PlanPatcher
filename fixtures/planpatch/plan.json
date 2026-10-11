@@ -1,0 +1,795 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "campus-tech-fest",
+  "name": "Campus Tech Fest",
+  "description": "Fictional, deterministic demo fixture for testing PlanPatch recovery logic. All places, prices, and availability values are illustrative; they are not live quotations or real bookings.",
+  "domain": "event-planning",
+  "constraints": {
+    "budgetLimit": 25000,
+    "currency": "INR",
+    "deadlineHours": 288,
+    "expectedAttendance": 100,
+    "minimumAccessibility": true,
+    "requiredOutput": "event-operations-plan-ready",
+    "preferredSessionMode": "single_session",
+    "multipleSessionsAllowed": true,
+    "deadlineKind": "plan_ready_for_event",
+    "deadlineDescription": "Latest elapsed hour by which preparation tasks must be complete. The event date is a separate project input."
+  },
+  "scoring": {
+    "changeFootprintDenominator": "originalTaskCount",
+    "lostTaskValueDenominator": "sumOfOriginalTaskPriorities",
+    "uncertaintyFactCount": 5,
+    "scheduleShiftReferenceHours": 8,
+    "deadlineSlackReferenceHours": 24
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Define event goals",
+      "cost": 0,
+      "durationHours": 2,
+      "priority": 5,
+      "policy": "fixed",
+      "status": "planned",
+      "inputs": {},
+      "outputs": {
+        "goalApproved": true,
+        "targetAudience": "students"
+      }
+    },
+    {
+      "id": "T02",
+      "title": "Confirm event date",
+      "cost": 0,
+      "durationHours": 4,
+      "priority": 5,
+      "policy": "fixed",
+      "status": "planned",
+      "inputs": {
+        "goalApproved": true
+      },
+      "outputs": {
+        "eventDate": "Day 12",
+        "eventDateOffsetHours": 288
+      }
+    },
+    {
+      "id": "T03",
+      "title": "Book venue",
+      "cost": 5000,
+      "durationHours": 24,
+      "priority": 5,
+      "policy": "replaceable",
+      "status": "confirmed_in_fixture",
+      "inputs": {
+        "eventDate": "Day 12",
+        "expectedAttendance": 100
+      },
+      "outputs": {
+        "venueId": "main-hall",
+        "address": "Demo Campus Main Hall, Demo University",
+        "capacity": 120,
+        "layoutType": "auditorium",
+        "avCapability": "standard",
+        "accessible": true,
+        "usableFloorSpace": true,
+        "bookingStatus": "confirmed_in_fixture"
+      },
+      "alternatives": [
+        "community-hall",
+        "campus-auditorium",
+        "lecture-hall",
+        "department-hall",
+        "rapid-confirmed-hall"
+      ]
+    },
+    {
+      "id": "T04",
+      "title": "Confirm speakers",
+      "cost": 2800,
+      "durationHours": 36,
+      "priority": 4,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "eventDate": "Day 12"
+      },
+      "outputs": {
+        "speakerList": "demo-speakers",
+        "confirmedSpeakerCount": 3
+      }
+    },
+    {
+      "id": "T05",
+      "title": "Open registration",
+      "cost": 1000,
+      "durationHours": 80,
+      "priority": 5,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "venueCapacity": 120,
+        "eventDate": "Day 12"
+      },
+      "outputs": {
+        "registrationWindowHours": 80,
+        "sessionMode": "single_session",
+        "sessionCount": 1,
+        "capacityPerSession": 120,
+        "expectedAttendees": 100
+      },
+      "alternatives": [
+        "early-close-registration",
+        "split-session-registration"
+      ]
+    },
+    {
+      "id": "T06",
+      "title": "Arrange AV equipment",
+      "cost": 2200,
+      "durationHours": 12,
+      "priority": 4,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "venueAvCapability": "standard"
+      },
+      "outputs": {
+        "avPackage": "standard-av",
+        "soundCheckRequired": true
+      },
+      "alternatives": [
+        "standard-av-1700",
+        "basic-av-900"
+      ]
+    },
+    {
+      "id": "T07",
+      "title": "Finalize seating layout",
+      "cost": 800,
+      "durationHours": 8,
+      "priority": 3,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "venueCapacity": 120,
+        "venueLayoutType": "auditorium",
+        "expectedAttendees": 100
+      },
+      "outputs": {
+        "seatingLayout": "auditorium-100",
+        "seatsPlanned": 100
+      }
+    },
+    {
+      "id": "T08",
+      "title": "Publish directions",
+      "cost": 200,
+      "durationHours": 4,
+      "priority": 4,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "venueAddress": "Demo Campus Main Hall, Demo University"
+      },
+      "outputs": {
+        "publishedAddress": "Demo Campus Main Hall, Demo University"
+      }
+    },
+    {
+      "id": "T09",
+      "title": "Design event logo",
+      "cost": 500,
+      "durationHours": 8,
+      "priority": 3,
+      "policy": "fixed",
+      "status": "planned",
+      "inputs": {
+        "goalApproved": true
+      },
+      "outputs": {
+        "brandAssets": "approved-demo-logo"
+      }
+    },
+    {
+      "id": "T10",
+      "title": "Prepare marketing",
+      "cost": 1200,
+      "durationHours": 48,
+      "priority": 4,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "goalApproved": true,
+        "eventDate": "Day 12",
+        "brandAssets": "approved-demo-logo"
+      },
+      "outputs": {
+        "campaignAssets": "general-event-promotion"
+      }
+    },
+    {
+      "id": "T11",
+      "title": "Recruit volunteers",
+      "cost": 500,
+      "durationHours": 24,
+      "priority": 3,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "eventDate": "Day 12"
+      },
+      "outputs": {
+        "volunteerCount": 8
+      }
+    },
+    {
+      "id": "T12",
+      "title": "Arrange catering",
+      "cost": 2200,
+      "durationHours": 12,
+      "priority": 4,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "expectedAttendees": 100,
+        "cateringMode": "single-service"
+      },
+      "outputs": {
+        "mealCount": 100,
+        "cateringPackage": "standard-meal"
+      },
+      "alternatives": [
+        "standard-catering-1400",
+        "basic-catering-1000"
+      ]
+    },
+    {
+      "id": "T13",
+      "title": "Create session schedule",
+      "cost": 500,
+      "durationHours": 8,
+      "priority": 4,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "confirmedSpeakers": 3,
+        "sessionMode": "single_session",
+        "expectedAttendees": 100
+      },
+      "outputs": {
+        "sessionCount": 1,
+        "scheduleType": "single-track"
+      }
+    },
+    {
+      "id": "T14",
+      "title": "Run technical rehearsal",
+      "cost": 500,
+      "durationHours": 6,
+      "priority": 5,
+      "policy": "replaceable",
+      "status": "planned",
+      "inputs": {
+        "avReady": true,
+        "seatingReady": true,
+        "scheduleReady": true,
+        "volunteersReady": true
+      },
+      "outputs": {
+        "rehearsalComplete": true
+      }
+    },
+    {
+      "id": "T15",
+      "title": "Finalize event-day runbook",
+      "cost": 600,
+      "durationHours": 8,
+      "priority": 5,
+      "policy": "fixed",
+      "status": "planned",
+      "inputs": {
+        "rehearsalComplete": true
+      },
+      "outputs": {
+        "eventOperationsPlanReady": true
+      }
+    },
+    {
+      "id": "T16",
+      "title": "Set up sponsor booth",
+      "cost": 0,
+      "durationHours": 2,
+      "priority": 1,
+      "policy": "optional",
+      "status": "planned",
+      "inputs": {
+        "usableFloorSpace": true
+      },
+      "outputs": {
+        "sponsorBoothReady": true
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "D01",
+      "fromTaskId": "T01",
+      "toTaskId": "T02",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "goalApproved",
+          "targetInput": "goalApproved"
+        }
+      ],
+      "reason": "The event date is confirmed after its goal is defined."
+    },
+    {
+      "id": "D02",
+      "fromTaskId": "T01",
+      "toTaskId": "T09",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "goalApproved",
+          "targetInput": "goalApproved"
+        }
+      ],
+      "reason": "The logo is based on the approved event brief."
+    },
+    {
+      "id": "D03",
+      "fromTaskId": "T02",
+      "toTaskId": "T03",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "eventDate",
+          "targetInput": "eventDate"
+        }
+      ],
+      "reason": "The venue booking needs the event date."
+    },
+    {
+      "id": "D04",
+      "fromTaskId": "T02",
+      "toTaskId": "T04",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "eventDate",
+          "targetInput": "eventDate"
+        }
+      ],
+      "reason": "Speaker confirmation depends on the event date."
+    },
+    {
+      "id": "D05",
+      "fromTaskId": "T02",
+      "toTaskId": "T05",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "eventDate",
+          "targetInput": "eventDate"
+        }
+      ],
+      "reason": "Registration uses the confirmed event date."
+    },
+    {
+      "id": "D06",
+      "fromTaskId": "T03",
+      "toTaskId": "T05",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "capacity",
+          "targetInput": "venueCapacity"
+        }
+      ],
+      "reason": "Registration must use the selected venue's capacity."
+    },
+    {
+      "id": "D07",
+      "fromTaskId": "T03",
+      "toTaskId": "T06",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "avCapability",
+          "targetInput": "venueAvCapability"
+        }
+      ],
+      "reason": "AV arrangements must be compatible with the venue."
+    },
+    {
+      "id": "D08",
+      "fromTaskId": "T03",
+      "toTaskId": "T07",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "capacity",
+          "targetInput": "venueCapacity"
+        },
+        {
+          "sourceField": "layoutType",
+          "targetInput": "venueLayoutType"
+        }
+      ],
+      "reason": "The seating layout consumes venue capacity and layout type."
+    },
+    {
+      "id": "D09",
+      "fromTaskId": "T05",
+      "toTaskId": "T07",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "expectedAttendees",
+          "targetInput": "expectedAttendees"
+        }
+      ],
+      "reason": "Seating must accommodate expected attendees."
+    },
+    {
+      "id": "D10",
+      "fromTaskId": "T03",
+      "toTaskId": "T08",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "address",
+          "targetInput": "venueAddress"
+        }
+      ],
+      "reason": "Published directions must use the selected venue address."
+    },
+    {
+      "id": "D11",
+      "fromTaskId": "T02",
+      "toTaskId": "T10",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "eventDate",
+          "targetInput": "eventDate"
+        }
+      ],
+      "reason": "Marketing materials use the confirmed date."
+    },
+    {
+      "id": "D12",
+      "fromTaskId": "T09",
+      "toTaskId": "T10",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "brandAssets",
+          "targetInput": "brandAssets"
+        }
+      ],
+      "reason": "Marketing uses the approved brand assets."
+    },
+    {
+      "id": "D13",
+      "fromTaskId": "T02",
+      "toTaskId": "T11",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "eventDate",
+          "targetInput": "eventDate"
+        }
+      ],
+      "reason": "Volunteer recruitment needs the event date."
+    },
+    {
+      "id": "D14",
+      "fromTaskId": "T03",
+      "toTaskId": "T12",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "capacity",
+          "targetInput": "venueCapacity"
+        }
+      ],
+      "reason": "Catering must match a feasible event configuration."
+    },
+    {
+      "id": "D15",
+      "fromTaskId": "T05",
+      "toTaskId": "T12",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "expectedAttendees",
+          "targetInput": "expectedAttendees"
+        }
+      ],
+      "reason": "Catering quantities use expected attendees."
+    },
+    {
+      "id": "D16",
+      "fromTaskId": "T04",
+      "toTaskId": "T13",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "confirmedSpeakerCount",
+          "targetInput": "confirmedSpeakers"
+        }
+      ],
+      "reason": "The session schedule needs the confirmed speaker list."
+    },
+    {
+      "id": "D17",
+      "fromTaskId": "T05",
+      "toTaskId": "T13",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "sessionMode",
+          "targetInput": "sessionMode"
+        },
+        {
+          "sourceField": "expectedAttendees",
+          "targetInput": "expectedAttendees"
+        }
+      ],
+      "reason": "The schedule reflects the registration and session configuration."
+    },
+    {
+      "id": "D18",
+      "fromTaskId": "T06",
+      "toTaskId": "T14",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "avPackage",
+          "targetInput": "avReady"
+        }
+      ],
+      "reason": "The rehearsal needs an AV setup."
+    },
+    {
+      "id": "D19",
+      "fromTaskId": "T07",
+      "toTaskId": "T14",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "seatingLayout",
+          "targetInput": "seatingReady"
+        }
+      ],
+      "reason": "The rehearsal needs a finalized seating layout."
+    },
+    {
+      "id": "D20",
+      "fromTaskId": "T13",
+      "toTaskId": "T14",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "scheduleType",
+          "targetInput": "scheduleReady"
+        }
+      ],
+      "reason": "The rehearsal needs the current session schedule."
+    },
+    {
+      "id": "D21",
+      "fromTaskId": "T11",
+      "toTaskId": "T14",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "volunteerCount",
+          "targetInput": "volunteersReady"
+        }
+      ],
+      "reason": "The rehearsal needs the volunteer plan."
+    },
+    {
+      "id": "D22",
+      "fromTaskId": "T08",
+      "toTaskId": "T15",
+      "blocksExecution": true,
+      "fieldMappings": [],
+      "reason": "Directions must be published before finalizing the event-day runbook."
+    },
+    {
+      "id": "D23",
+      "fromTaskId": "T10",
+      "toTaskId": "T15",
+      "blocksExecution": true,
+      "fieldMappings": [],
+      "reason": "Marketing preparation must finish before finalizing the event-day runbook."
+    },
+    {
+      "id": "D24",
+      "fromTaskId": "T12",
+      "toTaskId": "T15",
+      "blocksExecution": true,
+      "fieldMappings": [],
+      "reason": "Catering plans must be ready before finalizing the event-day runbook."
+    },
+    {
+      "id": "D25",
+      "fromTaskId": "T14",
+      "toTaskId": "T15",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "rehearsalComplete",
+          "targetInput": "rehearsalComplete"
+        }
+      ],
+      "reason": "Technical rehearsal must finish before finalizing the event-day runbook."
+    },
+    {
+      "id": "D26",
+      "fromTaskId": "T03",
+      "toTaskId": "T16",
+      "blocksExecution": true,
+      "fieldMappings": [
+        {
+          "sourceField": "usableFloorSpace",
+          "targetInput": "usableFloorSpace"
+        }
+      ],
+      "reason": "The optional sponsor booth requires suitable venue space."
+    },
+    {
+      "id": "D27",
+      "fromTaskId": "T16",
+      "toTaskId": "T15",
+      "blocksExecution": true,
+      "fieldMappings": [],
+      "reason": "If retained, the sponsor booth plan must be ready before finalizing the event-day runbook.",
+      "removeEdgeIfSourceRemoved": true
+    }
+  ],
+  "demoAlternatives": {
+    "venues": [
+      {
+        "id": "community-hall",
+        "name": "Community Hall (demo)",
+        "cost": 7000,
+        "durationHours": 26,
+        "capacity": 120,
+        "address": "Demo Community Hall, Demo University",
+        "layoutType": "banquet",
+        "avCapability": "standard",
+        "accessible": true,
+        "usableFloorSpace": true,
+        "availability": "unknown",
+        "notes": "Accommodates all 100 attendees in one session; longer booking lead time."
+      },
+      {
+        "id": "campus-auditorium",
+        "name": "Campus Auditorium (demo)",
+        "cost": 4000,
+        "durationHours": 12,
+        "capacity": 60,
+        "address": "Demo Campus Auditorium, Demo University",
+        "layoutType": "lecture",
+        "avCapability": "standard",
+        "accessible": true,
+        "usableFloorSpace": false,
+        "availability": "unknown",
+        "multiSessionApproval": "unknown",
+        "notes": "Can serve 100 attendees across two sessions of 50; organizer approval is required."
+      },
+      {
+        "id": "lecture-hall",
+        "name": "Lecture Hall (demo)",
+        "cost": 4000,
+        "durationHours": 24,
+        "capacity": 120,
+        "address": "Demo Lecture Hall, Demo University",
+        "layoutType": "classroom",
+        "avCapability": "standard",
+        "accessible": true,
+        "usableFloorSpace": true,
+        "availability": "unknown",
+        "notes": "Budget-oriented option; capacity remains sufficient for one session."
+      },
+      {
+        "id": "department-hall",
+        "name": "Department Hall (demo)",
+        "cost": 3000,
+        "durationHours": 26,
+        "capacity": 120,
+        "address": "Demo Department Hall, Demo University",
+        "layoutType": "workshop",
+        "avCapability": "basic",
+        "accessible": true,
+        "usableFloorSpace": true,
+        "availability": "unknown",
+        "avCompatibility": "unknown",
+        "notes": "Lowest seeded venue cost, but AV compatibility and availability need confirmation."
+      },
+      {
+        "id": "rapid-confirmed-hall",
+        "name": "Pre-confirmed Fast-Track Hall (demo)",
+        "cost": 7000,
+        "durationHours": 12,
+        "capacity": 120,
+        "address": "Demo Fast-Track Hall, Demo University",
+        "layoutType": "banquet",
+        "avCapability": "standard",
+        "accessible": true,
+        "usableFloorSpace": true,
+        "availability": "confirmed_in_demo_fixture",
+        "notes": "Fictional pre-confirmed option used only to test deadline recovery."
+      }
+    ],
+    "avPackages": [
+      {
+        "id": "standard-av-1700",
+        "name": "Standard AV (budget quote)",
+        "cost": 1700,
+        "durationHours": 12,
+        "compatibility": "fixture-confirmed"
+      },
+      {
+        "id": "basic-av-900",
+        "name": "Basic AV (demo estimate)",
+        "cost": 900,
+        "durationHours": 12,
+        "compatibility": "unknown"
+      }
+    ],
+    "cateringPackages": [
+      {
+        "id": "standard-catering-1400",
+        "name": "Standard catering (budget quote)",
+        "cost": 1400,
+        "durationHours": 12,
+        "servesAttendees": 100,
+        "compatibility": "fixture-confirmed"
+      },
+      {
+        "id": "basic-catering-1000",
+        "name": "Basic catering (demo estimate)",
+        "cost": 1000,
+        "durationHours": 12,
+        "servesAttendees": 100,
+        "compatibility": "fixture-confirmed"
+      }
+    ],
+    "registrationModes": [
+      {
+        "id": "early-close-registration",
+        "name": "Early registration close",
+        "durationHours": 64,
+        "sessionMode": "single_session",
+        "sessionCount": 1,
+        "expectedAttendees": 100,
+        "attendanceAssumption": "unknown"
+      },
+      {
+        "id": "split-session-registration",
+        "name": "Two-session registration",
+        "durationHours": 84,
+        "sessionMode": "two_sessions",
+        "sessionCount": 2,
+        "capacityPerSession": 60,
+        "expectedAttendees": 100,
+        "approval": "unknown"
+      }
+    ]
+  },
+  "notes": [
+    "All costs are INR and illustrative only.",
+    "All venue names and addresses are fictional demo data.",
+    "Availability values describe the fixture only; no live venue search or booking has occurred.",
+    "Durations are elapsed hours used by the deterministic scheduling model.",
+    "The target of 100 attendees is a planning target; actual attendance cannot be guaranteed by the engine."
+  ]
+}

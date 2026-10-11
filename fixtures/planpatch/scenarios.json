@@ -1,0 +1,851 @@
+{
+  "schemaVersion": "1.0.0",
+  "scenarioCount": 3,
+  "scenarios": [
+    {
+      "id": "S1-venue-cancelled",
+      "title": "Venue cancelled",
+      "purpose": "Test field-aware propagation and preserve-vs-cheaper trade-offs.",
+      "disruption": {
+        "type": "task_unavailable",
+        "targetTaskId": "T03",
+        "field": "bookingStatus",
+        "newValue": "unavailable",
+        "description": "The original venue cancelled."
+      },
+      "constraintOverrides": {},
+      "candidatePatches": [
+        {
+          "id": "S1-A-community-hall",
+          "label": "Community Hall — preserve one-session event",
+          "changedTaskIds": [
+            "T03",
+            "T07",
+            "T08"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "unknownFacts": [
+            "venue_availability"
+          ],
+          "taskOverrides": {
+            "T03": {
+              "cost": 7000,
+              "durationHours": 26,
+              "status": "proposed",
+              "outputs": {
+                "venueId": "community-hall",
+                "address": "Demo Community Hall, Demo University",
+                "capacity": 120,
+                "layoutType": "banquet",
+                "avCapability": "standard",
+                "accessible": true,
+                "usableFloorSpace": true,
+                "bookingStatus": "unknown"
+              }
+            },
+            "T07": {
+              "inputs": {
+                "venueCapacity": 120,
+                "venueLayoutType": "banquet",
+                "expectedAttendees": 100
+              },
+              "outputs": {
+                "seatingLayout": "banquet-layout-100",
+                "seatsPlanned": 100
+              }
+            },
+            "T08": {
+              "inputs": {
+                "venueAddress": "Demo Community Hall, Demo University"
+              },
+              "outputs": {
+                "publishedAddress": "Demo Community Hall, Demo University"
+              }
+            }
+          },
+          "reasoning": "Capacity remains sufficient for 100 attendees and AV compatibility is unchanged. Rework the seating layout and directions because the layout and address changed. The longer venue lead time shifts downstream start times by two hours.",
+          "expectedImpactedFields": {
+            "T03": [
+              "cost",
+              "durationHours",
+              "address",
+              "layoutType",
+              "bookingStatus"
+            ],
+            "T07": [
+              "venueLayoutType"
+            ],
+            "T08": [
+              "venueAddress"
+            ],
+            "GLOBAL": [
+              "budget",
+              "schedule"
+            ]
+          },
+          "expectedImpact": {
+            "directlyChangedTaskIds": [
+              "T03"
+            ],
+            "fieldInvalidatedTaskIds": [
+              "T07",
+              "T08",
+              "T14"
+            ],
+            "globalRevalidation": [
+              "budget",
+              "schedule",
+              "deadline"
+            ],
+            "reviewTaskIds": [
+              "T03",
+              "T05",
+              "T06",
+              "T07",
+              "T08",
+              "T12",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ],
+            "taskRecordPreservedButTimingShiftedIds": [
+              "T05",
+              "T06",
+              "T12",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ],
+            "taskRecordPreservedTaskIds": [
+              "T01",
+              "T02",
+              "T04",
+              "T05",
+              "T06",
+              "T09",
+              "T10",
+              "T11",
+              "T12",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ]
+          }
+        },
+        {
+          "id": "S1-B-campus-auditorium",
+          "label": "Campus Auditorium — lower cost, two sessions",
+          "changedTaskIds": [
+            "T03",
+            "T05",
+            "T07",
+            "T08",
+            "T13",
+            "T16"
+          ],
+          "removedTaskIds": [
+            "T16"
+          ],
+          "lostTaskIds": [
+            "T16"
+          ],
+          "unknownFacts": [
+            "venue_availability",
+            "organizer_approval_for_two_sessions"
+          ],
+          "taskOverrides": {
+            "T03": {
+              "cost": 4000,
+              "durationHours": 12,
+              "status": "proposed",
+              "outputs": {
+                "venueId": "campus-auditorium",
+                "address": "Demo Campus Auditorium, Demo University",
+                "capacity": 60,
+                "layoutType": "lecture",
+                "avCapability": "standard",
+                "accessible": true,
+                "usableFloorSpace": false,
+                "bookingStatus": "unknown"
+              }
+            },
+            "T05": {
+              "durationHours": 84,
+              "inputs": {
+                "venueCapacity": 60,
+                "eventDate": "Day 12"
+              },
+              "outputs": {
+                "registrationWindowHours": 84,
+                "sessionMode": "two_sessions",
+                "sessionCount": 2,
+                "capacityPerSession": 60,
+                "expectedAttendees": 100
+              }
+            },
+            "T07": {
+              "durationHours": 10,
+              "inputs": {
+                "venueCapacity": 60,
+                "venueLayoutType": "lecture",
+                "expectedAttendees": 100
+              },
+              "outputs": {
+                "seatingLayout": "lecture-layout-50-per-session",
+                "seatsPlanned": 50
+              }
+            },
+            "T08": {
+              "inputs": {
+                "venueAddress": "Demo Campus Auditorium, Demo University"
+              },
+              "outputs": {
+                "publishedAddress": "Demo Campus Auditorium, Demo University"
+              }
+            },
+            "T13": {
+              "durationHours": 16,
+              "inputs": {
+                "confirmedSpeakers": 3,
+                "sessionMode": "two_sessions",
+                "expectedAttendees": 100
+              },
+              "outputs": {
+                "sessionCount": 2,
+                "scheduleType": "staggered-two-session"
+              }
+            }
+          },
+          "reasoning": "Capacity is 60, below the 100-person single-session target, so the candidate changes registration and scheduling to two sessions of 50, adapts seating, updates directions, and removes the optional booth because this fixture marks usable floor space as unavailable. Organizer approval and availability remain unknown.",
+          "expectedImpactedFields": {
+            "T03": [
+              "cost",
+              "durationHours",
+              "address",
+              "capacity",
+              "layoutType",
+              "usableFloorSpace",
+              "bookingStatus"
+            ],
+            "T05": [
+              "venueCapacity",
+              "sessionMode",
+              "sessionCount"
+            ],
+            "T07": [
+              "venueCapacity",
+              "venueLayoutType"
+            ],
+            "T08": [
+              "venueAddress"
+            ],
+            "T13": [
+              "sessionMode",
+              "sessionCount"
+            ],
+            "T16": [
+              "usableFloorSpace"
+            ],
+            "GLOBAL": [
+              "budget",
+              "schedule"
+            ]
+          },
+          "expectedImpact": {
+            "directlyChangedTaskIds": [
+              "T03"
+            ],
+            "fieldInvalidatedTaskIds": [
+              "T05",
+              "T07",
+              "T08",
+              "T13",
+              "T14",
+              "T16"
+            ],
+            "globalRevalidation": [
+              "budget",
+              "schedule",
+              "deadline",
+              "capacity"
+            ],
+            "reviewTaskIds": [
+              "T03",
+              "T05",
+              "T06",
+              "T07",
+              "T08",
+              "T12",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ],
+            "taskRecordPreservedButTimingShiftedIds": [
+              "T06",
+              "T12"
+            ],
+            "taskRecordPreservedTaskIds": [
+              "T01",
+              "T02",
+              "T04",
+              "T06",
+              "T09",
+              "T10",
+              "T11",
+              "T12",
+              "T14",
+              "T15"
+            ]
+          }
+        }
+      ],
+      "expectedBehavior": [
+        "Preserve the logo and general marketing tasks.",
+        "Revalidate global cost and schedule even if a task record is not edited.",
+        "Do not label either option fully verified while required facts remain unknown.",
+        "The lower-cost option is not automatically the best under every preference profile."
+      ]
+    },
+    {
+      "id": "S2-budget-cut",
+      "title": "Budget drops from ₹25,000 to ₹16,000",
+      "purpose": "Test a global constraint violation and alternative combinations.",
+      "disruption": {
+        "type": "budget_changed",
+        "field": "budgetLimit",
+        "oldValue": 25000,
+        "newValue": 16000,
+        "description": "The available budget is reduced to ₹16,000."
+      },
+      "constraintOverrides": {
+        "budgetLimit": 16000
+      },
+      "candidatePatches": [
+        {
+          "id": "S2-A-lecture-hall-lean",
+          "label": "Lecture Hall — moderate savings, no timeline shift",
+          "changedTaskIds": [
+            "T03",
+            "T06",
+            "T07",
+            "T08",
+            "T12"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "unknownFacts": [
+            "venue_availability"
+          ],
+          "taskOverrides": {
+            "T03": {
+              "cost": 4000,
+              "durationHours": 24,
+              "status": "proposed",
+              "outputs": {
+                "venueId": "lecture-hall",
+                "address": "Demo Lecture Hall, Demo University",
+                "capacity": 120,
+                "layoutType": "classroom",
+                "avCapability": "standard",
+                "accessible": true,
+                "usableFloorSpace": true,
+                "bookingStatus": "unknown"
+              }
+            },
+            "T06": {
+              "cost": 1700,
+              "outputs": {
+                "avPackage": "standard-av-budget-1700",
+                "soundCheckRequired": true
+              }
+            },
+            "T07": {
+              "inputs": {
+                "venueCapacity": 120,
+                "venueLayoutType": "classroom",
+                "expectedAttendees": 100
+              },
+              "outputs": {
+                "seatingLayout": "classroom-layout-100",
+                "seatsPlanned": 100
+              }
+            },
+            "T08": {
+              "inputs": {
+                "venueAddress": "Demo Lecture Hall, Demo University"
+              },
+              "outputs": {
+                "publishedAddress": "Demo Lecture Hall, Demo University"
+              }
+            },
+            "T12": {
+              "cost": 1400,
+              "outputs": {
+                "mealCount": 100,
+                "cateringPackage": "standard-catering-budget-1400"
+              }
+            }
+          },
+          "reasoning": "Costs fall by ₹2,300 to ₹15,700. Venue booking duration and capacity remain the same as the baseline, so earliest task starts do not shift. Availability remains unknown.",
+          "expectedImpactedFields": {
+            "T03": [
+              "cost",
+              "address",
+              "layoutType"
+            ],
+            "T06": [
+              "cost",
+              "avPackage"
+            ],
+            "T07": [
+              "venueLayoutType"
+            ],
+            "T08": [
+              "venueAddress"
+            ],
+            "T12": [
+              "cost",
+              "cateringPackage"
+            ],
+            "GLOBAL": [
+              "budget"
+            ]
+          },
+          "expectedImpact": {
+            "directlyChangedTaskIds": [
+              "T03",
+              "T06",
+              "T12"
+            ],
+            "fieldInvalidatedTaskIds": [
+              "T07",
+              "T08",
+              "T14"
+            ],
+            "globalRevalidation": [
+              "budget",
+              "schedule",
+              "deadline"
+            ],
+            "reviewTaskIds": [
+              "T03",
+              "T06",
+              "T07",
+              "T08",
+              "T12",
+              "T14",
+              "T15"
+            ],
+            "taskRecordPreservedButTimingShiftedIds": [],
+            "taskRecordPreservedTaskIds": [
+              "T01",
+              "T02",
+              "T04",
+              "T05",
+              "T09",
+              "T10",
+              "T11",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ]
+          }
+        },
+        {
+          "id": "S2-B-department-hall-lean",
+          "label": "Department Hall — largest savings, more uncertainty and delay",
+          "changedTaskIds": [
+            "T03",
+            "T06",
+            "T07",
+            "T08",
+            "T12"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "unknownFacts": [
+            "venue_availability",
+            "basic_av_compatibility"
+          ],
+          "taskOverrides": {
+            "T03": {
+              "cost": 3000,
+              "durationHours": 26,
+              "status": "proposed",
+              "outputs": {
+                "venueId": "department-hall",
+                "address": "Demo Department Hall, Demo University",
+                "capacity": 120,
+                "layoutType": "workshop",
+                "avCapability": "basic",
+                "accessible": true,
+                "usableFloorSpace": true,
+                "bookingStatus": "unknown"
+              }
+            },
+            "T06": {
+              "cost": 900,
+              "outputs": {
+                "avPackage": "basic-av-demo-900",
+                "soundCheckRequired": true
+              }
+            },
+            "T07": {
+              "inputs": {
+                "venueCapacity": 120,
+                "venueLayoutType": "workshop",
+                "expectedAttendees": 100
+              },
+              "outputs": {
+                "seatingLayout": "workshop-layout-100",
+                "seatsPlanned": 100
+              }
+            },
+            "T08": {
+              "inputs": {
+                "venueAddress": "Demo Department Hall, Demo University"
+              },
+              "outputs": {
+                "publishedAddress": "Demo Department Hall, Demo University"
+              }
+            },
+            "T12": {
+              "cost": 1000,
+              "outputs": {
+                "mealCount": 100,
+                "cateringPackage": "basic-catering-demo-1000"
+              }
+            }
+          },
+          "reasoning": "Costs fall by ₹4,500 to ₹13,500. The venue lead time adds two hours to descendants. Venue availability and basic AV compatibility remain unverified.",
+          "expectedImpactedFields": {
+            "T03": [
+              "cost",
+              "durationHours",
+              "address",
+              "layoutType",
+              "avCapability"
+            ],
+            "T06": [
+              "cost",
+              "avPackage"
+            ],
+            "T07": [
+              "venueLayoutType"
+            ],
+            "T08": [
+              "venueAddress"
+            ],
+            "T12": [
+              "cost",
+              "cateringPackage"
+            ],
+            "GLOBAL": [
+              "budget",
+              "schedule"
+            ]
+          },
+          "expectedImpact": {
+            "directlyChangedTaskIds": [
+              "T03",
+              "T06",
+              "T12"
+            ],
+            "fieldInvalidatedTaskIds": [
+              "T06",
+              "T07",
+              "T08",
+              "T14"
+            ],
+            "globalRevalidation": [
+              "budget",
+              "schedule",
+              "deadline"
+            ],
+            "reviewTaskIds": [
+              "T03",
+              "T05",
+              "T06",
+              "T07",
+              "T08",
+              "T12",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ],
+            "taskRecordPreservedButTimingShiftedIds": [
+              "T05",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ],
+            "taskRecordPreservedTaskIds": [
+              "T01",
+              "T02",
+              "T04",
+              "T05",
+              "T09",
+              "T10",
+              "T11",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ]
+          }
+        }
+      ],
+      "expectedBehavior": [
+        "The unpatched plan is infeasible because ₹18,000 exceeds ₹16,000.",
+        "Both candidate costs are within the new budget.",
+        "Preserve the Plan and Protect the Deadline should prefer the lecture-hall patch; Minimize Spending should prefer the department-hall patch.",
+        "Do not treat the lower-cost basic AV option as verified while compatibility is unknown."
+      ]
+    },
+    {
+      "id": "S3-deadline-moved-earlier",
+      "title": "Plan-readiness deadline moves from 12 days to 5 days",
+      "purpose": "Test critical-path calculations, the plan-readiness deadline, and deadline-buffer preference.",
+      "disruption": {
+        "type": "deadline_changed",
+        "field": "deadlineHours",
+        "oldValue": 288,
+        "newValue": 120,
+        "description": "The plan must be ready by 120 hours (5 days) instead of 288 hours (12 days). The event date is a separate input and is not silently changed."
+      },
+      "constraintOverrides": {
+        "deadlineHours": 120
+      },
+      "candidatePatches": [
+        {
+          "id": "S3-A-early-registration-close",
+          "label": "Close registration earlier — least task editing",
+          "changedTaskIds": [
+            "T05"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "unknownFacts": [
+            "100_attendees_reachable_with_shorter_registration_window"
+          ],
+          "taskOverrides": {
+            "T05": {
+              "durationHours": 64,
+              "outputs": {
+                "registrationWindowHours": 64,
+                "sessionMode": "single_session",
+                "sessionCount": 1,
+                "capacityPerSession": 120,
+                "expectedAttendees": 100
+              }
+            }
+          },
+          "reasoning": "Shortening the registration window from 80 to 64 hours reduces the critical chain from 132 to 116 hours. The plan has four hours of deadline slack; reaching the attendance target within the shorter window remains an assumption.",
+          "expectedImpactedFields": {
+            "T05": [
+              "registrationWindowHours",
+              "durationHours"
+            ],
+            "GLOBAL": [
+              "schedule",
+              "deadlineSlack"
+            ]
+          },
+          "expectedImpact": {
+            "directlyChangedTaskIds": [
+              "T05"
+            ],
+            "fieldInvalidatedTaskIds": [],
+            "globalRevalidation": [
+              "schedule",
+              "deadline",
+              "deadlineSlack"
+            ],
+            "reviewTaskIds": [
+              "T05",
+              "T07",
+              "T12",
+              "T13",
+              "T14",
+              "T15"
+            ],
+            "taskRecordPreservedButTimingShiftedIds": [
+              "T07",
+              "T12",
+              "T13",
+              "T14",
+              "T15"
+            ],
+            "taskRecordPreservedTaskIds": [
+              "T01",
+              "T02",
+              "T03",
+              "T04",
+              "T06",
+              "T07",
+              "T08",
+              "T09",
+              "T10",
+              "T11",
+              "T12",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ]
+          }
+        },
+        {
+          "id": "S3-B-fast-track-venue-and-registration",
+          "label": "Pre-confirmed fast-track venue plus early registration — more buffer",
+          "changedTaskIds": [
+            "T03",
+            "T05",
+            "T07",
+            "T08"
+          ],
+          "removedTaskIds": [],
+          "lostTaskIds": [],
+          "unknownFacts": [
+            "100_attendees_reachable_with_shorter_registration_window"
+          ],
+          "taskOverrides": {
+            "T03": {
+              "cost": 7000,
+              "durationHours": 12,
+              "status": "confirmed_in_demo_fixture",
+              "outputs": {
+                "venueId": "rapid-confirmed-hall",
+                "address": "Demo Fast-Track Hall, Demo University",
+                "capacity": 120,
+                "layoutType": "banquet",
+                "avCapability": "standard",
+                "accessible": true,
+                "usableFloorSpace": true,
+                "bookingStatus": "confirmed_in_demo_fixture"
+              }
+            },
+            "T05": {
+              "durationHours": 64,
+              "outputs": {
+                "registrationWindowHours": 64,
+                "sessionMode": "single_session",
+                "sessionCount": 1,
+                "capacityPerSession": 120,
+                "expectedAttendees": 100
+              }
+            },
+            "T07": {
+              "inputs": {
+                "venueCapacity": 120,
+                "venueLayoutType": "banquet",
+                "expectedAttendees": 100
+              },
+              "outputs": {
+                "seatingLayout": "banquet-layout-100",
+                "seatsPlanned": 100
+              }
+            },
+            "T08": {
+              "inputs": {
+                "venueAddress": "Demo Fast-Track Hall, Demo University"
+              },
+              "outputs": {
+                "publishedAddress": "Demo Fast-Track Hall, Demo University"
+              }
+            }
+          },
+          "reasoning": "The fixture assumes venue availability is confirmed and venue booking takes 12 hours. Together with a 64-hour registration window, the plan finishes in 104 hours, leaving 16 hours of slack. The shorter registration window still requires confirmation that the attendance target is realistic.",
+          "expectedImpactedFields": {
+            "T03": [
+              "cost",
+              "durationHours",
+              "address",
+              "layoutType"
+            ],
+            "T05": [
+              "registrationWindowHours",
+              "durationHours"
+            ],
+            "T07": [
+              "venueLayoutType"
+            ],
+            "T08": [
+              "venueAddress"
+            ],
+            "GLOBAL": [
+              "schedule",
+              "deadlineSlack",
+              "budget"
+            ]
+          },
+          "expectedImpact": {
+            "directlyChangedTaskIds": [
+              "T03",
+              "T05"
+            ],
+            "fieldInvalidatedTaskIds": [
+              "T07",
+              "T08",
+              "T14"
+            ],
+            "globalRevalidation": [
+              "budget",
+              "schedule",
+              "deadline",
+              "deadlineSlack"
+            ],
+            "reviewTaskIds": [
+              "T03",
+              "T05",
+              "T06",
+              "T07",
+              "T08",
+              "T12",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ],
+            "taskRecordPreservedButTimingShiftedIds": [
+              "T06",
+              "T12",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ],
+            "taskRecordPreservedTaskIds": [
+              "T01",
+              "T02",
+              "T04",
+              "T06",
+              "T09",
+              "T10",
+              "T11",
+              "T12",
+              "T13",
+              "T14",
+              "T15",
+              "T16"
+            ]
+          }
+        }
+      ],
+      "expectedBehavior": [
+        "The original plan is infeasible for a 120-hour preparation deadline: its earliest finish is 132 hours.",
+        "Both patches meet the numerical preparation deadline in the fixture.",
+        "Preserve the Plan and Minimize Spending should prefer earlier registration close; Protect the Deadline should prefer the fast-track venue patch because it leaves more slack.",
+        "Both candidates remain provisional until the attendance assumption is confirmed; the event date itself is unchanged."
+      ]
+    }
+  ]
+}
