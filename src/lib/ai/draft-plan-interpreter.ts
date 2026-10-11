@@ -259,8 +259,8 @@ CRITICAL RULES ON FACTUALITY & PROVENANCE:
    - Prominently record in "missingInformation": "Target destination & travel dates were not specified in prompt — required to confirm final route, transit, and lodging bookings."
    - Prominently record in "assumptions": "Trip destination unconfirmed in prompt; downstream transit and accommodation tasks depend on confirming target destination in T01."
 14. RECOVERY ALTERNATIVES & RESILIENCE:
-   - For replaceable or flexible tasks, provide 1 to 2 realistic recovery alternatives with an "id" (e.g. "alt-t02-1"), "title", estimated "cost", estimated "durationHours", and "unknownFacts" (e.g. ingredient or venue availability).
-   - For non-critical optional steps, set policy to "optional" so deterministic recovery can evaluate task removal under severe budget or schedule pressure.
+   - For every replaceable or flexible task, provide 1 to 2 realistic recovery alternatives with an "id" (e.g. "alt-t02-1"), "title", estimated "cost" (substantially lower than the main task, typically 30% to 60% of original cost, to allow effective budget recovery), estimated "durationHours", and "unknownFacts" (e.g. equipment or venue availability).
+   - For non-critical optional steps, set policy to "optional" and assign a realistic non-zero cost (e.g. 10% to 25% of total budget) so deterministic recovery can evaluate task removal with real cost savings under severe budget or schedule pressure.
 
 Output must be strictly valid JSON matching the requested schema.
 `.trim();
@@ -412,6 +412,20 @@ ${JSON.stringify(promptPayload, null, 2)}
         predecessorIds: validPreds,
         dependenciesProvenance: "ai_estimate",
         notes: t.notes,
+        alternatives:
+          t.alternatives && t.alternatives.length > 0
+            ? t.alternatives.map((alt, aIdx) => ({
+                id: alt.id || `alt-${id.toLowerCase()}-${aIdx + 1}`,
+                title: alt.title || "Alternative Option",
+                cost: typeof alt.cost === "number" ? alt.cost : 0,
+                costProvenance: (alt.costProvenance as FieldProvenance) || "ai_estimate",
+                durationHours: typeof alt.durationHours === "number" ? alt.durationHours : 0,
+                durationProvenance: (alt.durationProvenance as FieldProvenance) || "ai_estimate",
+                unknownFacts: Array.isArray(alt.unknownFacts) ? alt.unknownFacts : [],
+                notes: alt.notes,
+                status: alt.status || "suggested",
+              }))
+            : undefined,
       };
     });
 
@@ -840,6 +854,19 @@ export function generateSmartFallbackDraftPlan(input: DraftPlanInput): DraftPlan
         predecessorIds: ["T01"],
         dependenciesProvenance: "ai_estimate",
         notes: "Lodging reservations (proceeds in parallel with transit)",
+        alternatives: [
+          {
+            id: "alt-t03-budget-stay",
+            title: dest ? `Economy Guesthouse / Hostel in ${dest}` : "Economy Guesthouse / Budget Stay",
+            cost: Math.round(t03Cost * 0.5),
+            costProvenance: "ai_estimate",
+            durationHours: t03Duration,
+            durationProvenance: "ai_estimate",
+            unknownFacts: ["budget_room_availability"],
+            notes: "Lower-cost lodging alternative reducing overall accommodation spending.",
+            status: "suggested",
+          },
+        ],
       },
       {
         id: "T04",
@@ -858,6 +885,19 @@ export function generateSmartFallbackDraftPlan(input: DraftPlanInput): DraftPlan
         predecessorIds: ["T01"],
         dependenciesProvenance: "ai_estimate",
         notes: "Daily itinerary planning",
+        alternatives: [
+          {
+            id: "alt-t04-self-guided",
+            title: dest ? `Self-Guided Walking & Free Sights in ${dest}` : "Self-Guided Walking & Free Sights",
+            cost: Math.round(t04Cost * 0.35),
+            costProvenance: "ai_estimate",
+            durationHours: t04Duration,
+            durationProvenance: "ai_estimate",
+            unknownFacts: [],
+            notes: "Self-guided sightseeing bypassing premium paid excursions.",
+            status: "suggested",
+          },
+        ],
       },
       {
         id: "T05",
@@ -1283,9 +1323,9 @@ export function generateSmartFallbackDraftPlan(input: DraftPlanInput): DraftPlan
         id: "T04",
         title: "Roasting, Baking & Texture Balance",
         description: "Oven temperature control, sheet-pan roasting, internal temperature checking, and resting proteins.",
-        cost: userHasBudget ? Math.round(budgetLimit! * 0.15) : 2500,
+        cost: userHasBudget ? Math.round(budgetLimit! * 0.15) : 1500,
         costProvenance: "ai_estimate",
-        durationHours: userHasDeadline ? Math.round(deadlineHours! * 0.15) : 12,
+        durationHours: userHasDeadline ? Math.round(deadlineHours! * 0.15) : 10,
         durationProvenance: "ai_estimate",
         priority: 3,
         priorityProvenance: "ai_estimate",
@@ -1293,14 +1333,14 @@ export function generateSmartFallbackDraftPlan(input: DraftPlanInput): DraftPlan
         policyProvenance: "ai_estimate",
         predecessorIds: ["T03"],
         dependenciesProvenance: "ai_estimate",
-        notes: "Oven techniques and textures (optional enrichment)",
+        notes: "Oven techniques and textures",
         alternatives: [
           {
             id: "alt-t04-skillet-roast",
             title: "Skillet Toasting & Stovetop Crisp",
-            cost: userHasBudget ? Math.round(budgetLimit! * 0.1) : 1100,
+            cost: userHasBudget ? Math.round(budgetLimit! * 0.08) : 800,
             costProvenance: "ai_estimate",
-            durationHours: userHasDeadline ? Math.max(3, Math.round(deadlineHours! * 0.1)) : 6,
+            durationHours: userHasDeadline ? Math.max(3, Math.round(deadlineHours! * 0.1)) : 5,
             durationProvenance: "ai_estimate",
             unknownFacts: ["cast_iron_pan_available"],
             notes: "Bypasses oven preheating and high electric oven consumption.",
@@ -1312,17 +1352,17 @@ export function generateSmartFallbackDraftPlan(input: DraftPlanInput): DraftPlan
         id: "T05",
         title: "Complete Multi-Course Meal Execution",
         description: "Coordinate course timing, plating presentation, final seasoning adjustments, and complete dinner execution.",
-        cost: userHasBudget ? Math.round(budgetLimit! * 0.2) : 3500,
+        cost: userHasBudget ? Math.round(budgetLimit! * 0.2) : 2000,
         costProvenance: "ai_estimate",
         durationHours: userHasDeadline ? Math.round(deadlineHours! * 0.15) : 10,
         durationProvenance: "ai_estimate",
-        priority: 5,
+        priority: 4,
         priorityProvenance: "ai_estimate",
-        policy: "fixed",
+        policy: "optional",
         policyProvenance: "ai_estimate",
         predecessorIds: ["T04"],
         dependenciesProvenance: "ai_estimate",
-        notes: "Full dinner service capstone",
+        notes: "Optional dinner service banquet and advanced plating",
       },
     ];
   } else if (

@@ -636,7 +636,7 @@ export function generateCandidates(
       for (const t of baselinePlan.tasks) {
         if (t.policy === "fixed") continue;
 
-        if (t.policy === "optional") {
+        if (t.policy === "optional" && t.cost > 0) {
           options.push({
             taskId: t.id,
             taskTitle: t.title,

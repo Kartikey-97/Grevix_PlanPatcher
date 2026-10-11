@@ -366,6 +366,78 @@ describe("Milestone S7.3: AI-Assisted Plan Creation and Resilient Gemini UX", ()
       }
     });
 
+    it("preserves AI-generated recovery alternatives on tasks and propagates them to converted Plan", async () => {
+      const mockClient = new MockGeminiClient(
+        JSON.stringify({
+          name: "Culinary Learning Plan",
+          goal: "Learn culinary techniques with budget and time alternatives",
+          domain: "culinary",
+          budgetLimit: 10000,
+          budgetProvenance: "user_provided",
+          deadlineHours: 60,
+          deadlineProvenance: "user_provided",
+          currency: "INR",
+          tasks: [
+            {
+              id: "T01",
+              title: "Kitchen Prep",
+              cost: 2500,
+              costProvenance: "ai_estimate",
+              durationHours: 8,
+              durationProvenance: "ai_estimate",
+              priority: 5,
+              policy: "fixed",
+              predecessorIds: [],
+            },
+            {
+              id: "T02",
+              title: "Heat Control & Sautéing",
+              cost: 2500,
+              costProvenance: "ai_estimate",
+              durationHours: 12,
+              durationProvenance: "ai_estimate",
+              priority: 4,
+              policy: "flexible",
+              predecessorIds: ["T01"],
+              alternatives: [
+                {
+                  id: "alt-t02-express",
+                  title: "Express Pan-Seared Method",
+                  cost: 1200,
+                  costProvenance: "ai_estimate",
+                  durationHours: 6,
+                  durationProvenance: "ai_estimate",
+                  unknownFacts: ["induction_available"],
+                  status: "suggested",
+                },
+              ],
+            },
+          ],
+          assumptions: ["Standard home kitchen"],
+          missingInformation: [],
+        })
+      );
+
+      const result = await draftPlan(
+        { prompt: "learn cooking", budgetLimit: 10000, deadlineHours: 60 },
+        mockClient
+      );
+
+      expect(result.status).toBe("success");
+      if (result.status === "success") {
+        const t02 = result.draft.tasks.find((t) => t.id === "T02");
+        expect(t02).toBeDefined();
+        expect(t02?.alternatives).toBeDefined();
+        expect(t02?.alternatives).toHaveLength(1);
+        expect(t02?.alternatives![0].id).toBe("alt-t02-express");
+        expect(t02?.alternatives![0].cost).toBe(1200);
+
+        const convertedPlan = convertDraftToPlan(result.draft);
+        expect(convertedPlan.demoAlternatives).toBeDefined();
+        expect(Object.keys(convertedPlan.demoAlternatives!)).toContain("alt-t02-express");
+      }
+    });
+
     it("synthesizes resilient ML domain fallback draft when requested", () => {
       const fallback = generateSmartFallbackDraftPlan({
         prompt: "i want to learn ml",

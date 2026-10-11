@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ShieldAlert,
   SlidersHorizontal,
+  Info,
 } from "lucide-react";
 
 interface RecoveryComparisonProps {
@@ -165,6 +166,23 @@ export function RecoveryComparison({
           Formula: J(P) = wE*E + wL*L + wC*C + wS*S + wR*R
         </span>
       </div>
+
+      {/* Informative banner when no profile has an eligible winner */}
+      {!currentWinner && (
+        <div
+          className={`rounded-lg p-3 text-xs border flex items-start gap-2.5 transition-colors ${
+            isLight
+              ? "bg-amber-50/70 border-amber-200/80 text-amber-900"
+              : "bg-amber-950/30 border-amber-900/60 text-amber-200"
+          }`}
+        >
+          <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="space-y-0.5 leading-relaxed">
+            <span className="font-semibold">Why profile switching appears unchanged:</span>{" "}
+            Objective profiles (<em>{PROFILE_DESCRIPTIONS[selectedProfile]?.label}</em>) rank and select among <strong>feasible</strong> recovery candidates. Because all generated candidates currently violate one or more hard constraints (such as the budget limit), no candidate qualifies as a winner under any profile. Switching profiles updates mathematical ranking weights, but candidates must first meet hard feasibility constraints to be eligible.
+          </div>
+        </div>
+      )}
 
       {/* Winner Spotlight Card */}
       {currentWinner ? (
@@ -458,6 +476,40 @@ export function RecoveryComparison({
             </div>
           </div>
 
+          {/* Specific Budget / Schedule Deficit Diagnostic */}
+          {(() => {
+            const evals = recoveryResult.evaluations;
+            if (evals.length === 0) return null;
+            const firstEval = evals[0];
+            const budgetLimit = firstEval.budgetLimit;
+            const minCost = Math.min(...evals.map((e) => e.projectedTotalCost));
+
+            if (budgetLimit !== undefined && budgetLimit !== null && minCost > budgetLimit) {
+              const deficit = minCost - budgetLimit;
+              return (
+                <div
+                  className={`rounded-lg p-3 border text-xs space-y-1.5 ${
+                    isLight
+                      ? "bg-amber-50/60 border-amber-200/70 text-amber-900"
+                      : "bg-[#20150d] border-amber-900/60 text-amber-200"
+                  }`}
+                >
+                  <div className="font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    Budget Deficit Diagnostic
+                  </div>
+                  <p>
+                    Target budget limit is <strong>₹{budgetLimit.toLocaleString()}</strong>, but the lowest candidate cost is <strong>₹{minCost.toLocaleString()}</strong> (leaving a <strong>₹{deficit.toLocaleString()}</strong> shortfall).
+                  </p>
+                  <p className="text-[11px] opacity-90">
+                    <strong>Suggested resolution:</strong> Increase the overall budget limit, declare lower-cost alternative techniques for tasks in the plan editor, or mark non-essential tasks as replaceable or optional.
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {recoveryResult.blockingIssues.length > 0 && (
             <div
               className={`rounded-lg p-3 border text-xs space-y-1 ${
@@ -629,15 +681,25 @@ export function RecoveryComparison({
                           Provisional ({c.unknownFactCount} facts)
                         </span>
                       ) : (
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${
-                            isLight
-                              ? "bg-red-50 text-red-700 border-red-200"
-                              : "bg-red-950/60 text-red-300 border-red-800"
-                          }`}
-                        >
-                          Infeasible
-                        </span>
+                        (() => {
+                          const evalRes = recoveryResult.evaluations.find((e) => e.candidateId === c.candidateId);
+                          let infeasibleTooltip = "Violates one or more hard constraints";
+                          if (evalRes && evalRes.budgetLimit !== undefined && evalRes.budgetLimit !== null && evalRes.projectedTotalCost > evalRes.budgetLimit) {
+                            infeasibleTooltip = `Exceeds budget limit by ₹${(evalRes.projectedTotalCost - evalRes.budgetLimit).toLocaleString()} (Cost: ₹${evalRes.projectedTotalCost.toLocaleString()} vs Limit: ₹${evalRes.budgetLimit.toLocaleString()})`;
+                          }
+                          return (
+                            <span
+                              title={infeasibleTooltip}
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border cursor-help ${
+                                isLight
+                                  ? "bg-red-50 text-red-700 border-red-200"
+                                  : "bg-red-950/60 text-red-300 border-red-800"
+                              }`}
+                            >
+                              Infeasible
+                            </span>
+                          );
+                        })()
                       )}
                     </td>
 

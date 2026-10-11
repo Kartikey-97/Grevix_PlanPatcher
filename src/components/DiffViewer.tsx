@@ -5,6 +5,7 @@ import type { Plan } from "../lib/schemas/plan.schema";
 import type { CandidateEvaluationResult } from "../lib/engine/evaluate-candidates";
 import type { CandidatePatch } from "../lib/schemas/patch.schema";
 import { PlanTimeline } from "./plan/PlanTimeline";
+import { schedulePlan } from "../lib/engine/schedule";
 import { useTheme } from "../lib/theme-context";
 import {
   GitCompare,
@@ -46,11 +47,12 @@ export function DiffViewer({
   const candidateCost = candidateEvaluation.projectedTotalCost;
   const costDelta = candidateCost - baselineCost;
 
-  const baselineFinish = 132; // Canonical baseline finish
+  const baselineSched = schedulePlan(baselinePlan);
+  const baselineFinish = baselineSched.projectEarliestFinish;
   const candidateFinish = candidateEvaluation.earliestProjectFinishHours;
   const finishDelta = candidateFinish - baselineFinish;
 
-  const baselineDeadline = baselinePlan.constraints.deadlineHours ?? 288;
+  const baselineDeadline = baselinePlan.constraints.deadlineHours;
   const effectiveDeadline =
     candidateEvaluation.deadlineHours ?? baselineDeadline;
   const candidateSlack = candidateEvaluation.deadlineSlackHours ?? 0;
@@ -186,8 +188,10 @@ export function DiffViewer({
             </span>
           </div>
           <div className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-            Baseline: ₹{baselineCost.toLocaleString()} &bull; Budget: ₹
-            {(candidateEvaluation.budgetLimit ?? baselinePlan.constraints.budgetLimit ?? 25000).toLocaleString()}
+            Baseline: ₹{baselineCost.toLocaleString()} &bull; Budget:{" "}
+            {candidateEvaluation.budgetLimit !== undefined || baselinePlan.constraints.budgetLimit !== undefined
+              ? `₹${(candidateEvaluation.budgetLimit ?? baselinePlan.constraints.budgetLimit)!.toLocaleString()}`
+              : "Unconstrained"}
           </div>
         </div>
 
@@ -232,7 +236,8 @@ export function DiffViewer({
             </span>
           </div>
           <div className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-            Baseline: {baselineFinish}h &bull; Deadline: {effectiveDeadline}h
+            Baseline: {baselineFinish}h &bull; Deadline:{" "}
+            {effectiveDeadline !== undefined ? `${effectiveDeadline}h` : "Unconstrained"}
           </div>
         </div>
 
