@@ -29,3 +29,5 @@ yarn-error.log*
 
 # Temporary unpacked fixture pack
 planpatch_fixture_pack/
+*.tsbuildinfo
+tsconfig.tsbuildinfo

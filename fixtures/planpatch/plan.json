@@ -494,7 +494,8 @@
       "fieldMappings": [
         {
           "sourceField": "capacity",
-          "targetInput": "venueCapacity"
+          "targetInput": "venueCapacity",
+          "optional": true
         }
       ],
       "reason": "Catering must match a feasible event configuration."

@@ -9,8 +9,39 @@ export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export const FieldMappingSchema = z.object({
   sourceField: z.string(),
   targetInput: z.string(),
+  optional: z.boolean().default(false),
 });
 export type FieldMapping = z.infer<typeof FieldMappingSchema>;
+
+export const DependencyOriginSchema = z.enum([
+  "manual",
+  "system_template",
+  "ai_suggested",
+  "reconciled",
+]);
+export type DependencyOrigin = z.infer<typeof DependencyOriginSchema>;
+
+export const EdgeConfirmationStatusSchema = z.enum([
+  "unreviewed",
+  "reviewed",
+  "confirmed",
+  "provisional",
+]);
+export type EdgeConfirmationStatus = z.infer<typeof EdgeConfirmationStatusSchema>;
+
+export const EdgeProvenanceRecordSchema = z.object({
+  timestamp: z.string(),
+  author: z.string(),
+  action: z.enum([
+    "created",
+    "reviewed",
+    "confirmed",
+    "modified_fields",
+    "reconciled",
+  ]),
+  notes: z.string().optional(),
+});
+export type EdgeProvenanceRecord = z.infer<typeof EdgeProvenanceRecordSchema>;
 
 export const DependencySchema = z.object({
   id: z.string(),
@@ -19,6 +50,11 @@ export const DependencySchema = z.object({
   blocksExecution: z.boolean(),
   fieldMappings: z.array(FieldMappingSchema).default([]),
   reason: z.string().optional(),
+  origin: DependencyOriginSchema.default("system_template"),
+  confirmationStatus: EdgeConfirmationStatusSchema.default("confirmed"),
+  relevantSourceFields: z.array(z.string()).optional(),
+  relevantTargetFields: z.array(z.string()).optional(),
+  modificationHistory: z.array(EdgeProvenanceRecordSchema).default([]),
   removeEdgeIfSourceRemoved: z.boolean().optional(),
 });
 export type Dependency = z.infer<typeof DependencySchema>;
@@ -33,6 +69,7 @@ export const TaskSchema = z.object({
   status: TaskStatusSchema,
   inputs: z.record(z.unknown()).default({}),
   outputs: z.record(z.unknown()).default({}),
+  outputDependencies: z.record(z.array(z.string())).optional(),
   alternatives: z.array(z.string()).optional(),
 });
 export type Task = z.infer<typeof TaskSchema>;
@@ -68,6 +105,8 @@ export const PlanSchema = z.object({
   schemaVersion: z.string(),
   id: z.string(),
   name: z.string(),
+  planRevision: z.number().int().nonnegative().default(1),
+  updatedAt: z.string().optional(),
   description: z.string().optional(),
   domain: z.string().optional(),
   constraints: GlobalConstraintsSchema,
