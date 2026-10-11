@@ -6,6 +6,7 @@ import type { CandidatePatch } from "../../lib/schemas/patch.schema";
 import type { EvaluatedCandidate } from "../../lib/schemas/recovery-result.schema";
 import type { CandidateEvaluationResult } from "../../lib/engine/evaluate-candidates";
 import { schedulePlan, type ScheduleResult, type TaskSchedule } from "../../lib/engine/schedule";
+import { useTheme } from "../../lib/theme-context";
 import {
   Clock,
   Layers,
@@ -20,9 +21,12 @@ import {
   HelpCircle,
   Sparkles,
   GitBranch,
+  ZoomIn,
+  Compass,
 } from "lucide-react";
 
 export type TimelineViewMode = "baseline" | "proposed" | "comparison";
+
 
 export interface PlanTimelineProps {
   baselinePlan: Plan;
@@ -67,6 +71,7 @@ export function PlanTimeline({
   selectedTaskId: controlledSelectedTaskId,
   className = "",
 }: PlanTimelineProps) {
+  const { isLight, isDark } = useTheme();
   const [viewMode, setViewMode] = useState<TimelineViewMode>(
     proposedPlan ? initialMode : "baseline"
   );
@@ -74,6 +79,7 @@ export function PlanTimeline({
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [showCriticalOnly, setShowCriticalOnly] = useState(false);
   const [showConnectors, setShowConnectors] = useState(true);
+  const [horizonMode, setHorizonMode] = useState<"fit" | "deadline">("fit");
 
   const activeSelectedTaskId = controlledSelectedTaskId ?? internalSelectedTaskId;
 
@@ -96,10 +102,18 @@ export function PlanTimeline({
   // Empty state handling
   if (!activePlan || activePlan.tasks.length === 0) {
     return (
-      <div className={`p-8 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-3 ${className}`}>
-        <Layers className="w-8 h-8 text-slate-400 mx-auto" />
-        <h4 className="text-sm font-semibold text-slate-800">No Tasks in Schedule</h4>
-        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+      <div
+        className={`p-8 rounded-xl text-center space-y-3 transition-colors ${
+          isLight
+            ? "bg-slate-50 border border-slate-200 text-slate-800"
+            : "bg-[#0d1322] border border-slate-800 text-slate-100"
+        } ${className}`}
+      >
+        <Layers className={`w-8 h-8 mx-auto ${isLight ? "text-slate-400" : "text-slate-600"}`} />
+        <h4 className={`text-sm font-semibold ${isLight ? "text-slate-800" : "text-slate-100"}`}>
+          No Tasks in Schedule
+        </h4>
+        <p className={`text-xs max-w-sm mx-auto ${isLight ? "text-slate-500" : "text-slate-400"}`}>
           Add tasks and dependency edges to this plan to generate an automated critical-path schedule timeline.
         </p>
       </div>
@@ -191,10 +205,16 @@ export function PlanTimeline({
       });
     });
 
-    // Sort tasks in topological execution order: earliestStart ascending, then duration descending
+    // Sort tasks in topological execution order:
+    // 1. earliestStart ascending
+    // 2. Critical path tasks first when start times are identical
+    // 3. Longer duration tasks first to give cleaner cascade
     items.sort((a, b) => {
       if (a.earliestStart !== b.earliestStart) {
         return a.earliestStart - b.earliestStart;
+      }
+      if (a.isCritical !== b.isCritical) {
+        return a.isCritical ? -1 : 1;
       }
       return b.durationHours - a.durationHours;
     });
@@ -212,12 +232,17 @@ export function PlanTimeline({
       proposedPlan?.constraints.deadlineHours ?? 0
     );
 
-    const totalHours = Math.max(maxFinish, deadline > 0 ? deadline : maxFinish);
+    // In "fit" mode, scale timeline to actual active work + 15% breathing room (~152h)
+    // In "deadline" mode, scale out to project deadline (~288h)
+    const fitHorizon = Math.ceil(maxFinish * 1.15);
+    const deadlineHorizon = Math.max(deadline > 0 ? deadline : maxFinish, maxFinish);
+    const totalHours = horizonMode === "fit" ? fitHorizon : deadlineHorizon;
 
     return {
       taskItems: items,
-      totalDurationHours: Math.ceil(totalHours * 1.05), // add 5% padding
+      totalDurationHours: totalHours,
       maxDeadlineHours: deadline > 0 ? deadline : undefined,
+      maxFinishHours: maxFinish,
     };
   }, [
     baselinePlan,
@@ -226,6 +251,7 @@ export function PlanTimeline({
     proposedSchedule,
     viewMode,
     candidateEvaluation,
+    horizonMode,
   ]);
 
   // Filter tasks if critical only selected
@@ -243,8 +269,8 @@ export function PlanTimeline({
   // 5. Layout Geometry Constants
   const rowHeight = 44; // px
   const headerHeight = 36; // px
-  const labelWidth = 180; // px for task name/id sidebar
-  const minTimelineWidth = 640; // px
+  const labelWidth = 260; // px for task name/id sidebar - generous width prevents any truncation
+  const minTimelineWidth = 720; // px
   const chartHeight = displayedTasks.length * rowHeight;
 
   // Compute time ticks (e.g. 10-12 ticks across the horizon)
@@ -280,34 +306,64 @@ export function PlanTimeline({
   };
 
   return (
-    <div className={`bg-white border border-slate-200/90 rounded-xl shadow-xs overflow-hidden ${className}`}>
+    <div
+      className={`rounded-xl shadow-xs overflow-hidden transition-colors border ${
+        isLight
+          ? "bg-white border-slate-200/90 text-slate-900"
+          : "bg-[#0d1322] border-slate-800 text-slate-100"
+      } ${className}`}
+    >
       {/* 1. Header Toolbar */}
-      <div className="p-4 border-b border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/50">
+      <div
+        className={`p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 transition-colors ${
+          isLight
+            ? "border-slate-200/80 bg-slate-50/50 text-slate-900"
+            : "border-slate-800 bg-[#111827]/80 text-slate-100"
+        }`}
+      >
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-blue-600" />
+            <h3
+              className={`text-base font-bold tracking-tight flex items-center gap-1.5 ${
+                isLight ? "text-slate-900" : "text-white"
+              }`}
+            >
+              <Clock className="w-4 h-4 text-teal-500" />
               Schedule Timeline &amp; Critical Path
             </h3>
-            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <span
+              className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                isLight
+                  ? "bg-teal-50 text-teal-700 border-teal-200"
+                  : "bg-teal-950/60 text-teal-300 border-teal-800"
+              }`}
+            >
               Deterministic DAG
             </span>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             Calculated topological start &amp; finish times &bull; {displayedTasks.length} tasks scheduled &bull;{" "}
             Earliest Project Finish:{" "}
-            <strong>
+            <strong className={isLight ? "text-slate-900" : "text-slate-100"}>
               {activeSchedule.projectFinishHours}h
             </strong>
             {activeSchedule.hasDeadline && (
               <span>
                 {" "}
-                &bull; Deadline: <strong>{activeSchedule.deadlineHours}h</strong> (
+                &bull; Deadline:{" "}
+                <strong className={isLight ? "text-slate-900" : "text-slate-100"}>
+                  {activeSchedule.deadlineHours}h
+                </strong>{" "}
+                (
                 <span
                   className={
                     (activeSchedule.projectSlack ?? 0) >= 0
-                      ? "text-emerald-700 font-semibold"
-                      : "text-rose-700 font-semibold"
+                      ? isLight
+                        ? "text-emerald-700 font-semibold"
+                        : "text-emerald-400 font-semibold"
+                      : isLight
+                      ? "text-rose-700 font-semibold"
+                      : "text-rose-400 font-semibold"
                   }
                 >
                   {(activeSchedule.projectSlack ?? 0) >= 0
@@ -320,17 +376,67 @@ export function PlanTimeline({
           </p>
         </div>
 
-        {/* View Mode & Filter Controls */}
+        {/* View Mode, Horizon Scale & Filter Controls */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Horizon Scale Selector: Fit Work vs Full Deadline */}
+          <div
+            className={`inline-flex rounded-lg border p-0.5 shadow-2xs ${
+              isLight ? "border-slate-200 bg-white" : "border-slate-700 bg-[#131b2e]"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setHorizonMode("fit")}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                horizonMode === "fit"
+                  ? isLight
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-teal-600 text-white shadow-xs"
+                  : isLight
+                  ? "text-slate-600 hover:text-slate-900"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Scale timeline to fit active tasks with generous spacing"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+              <span>Fit Work ({Math.ceil((activeSchedule.projectFinishHours || 132) * 1.15)}h)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setHorizonMode("deadline")}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                horizonMode === "deadline"
+                  ? isLight
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-teal-600 text-white shadow-xs"
+                  : isLight
+                  ? "text-slate-600 hover:text-slate-900"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="View full horizon out to project deadline limit"
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>Deadline ({activeSchedule.deadlineHours || 288}h)</span>
+            </button>
+          </div>
+
           {proposedPlan && (
-            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
+            <div
+              className={`inline-flex rounded-lg border p-0.5 shadow-2xs ${
+                isLight ? "border-slate-200 bg-white" : "border-slate-700 bg-[#131b2e]"
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => setViewMode("baseline")}
                 className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
                   viewMode === "baseline"
-                    ? "bg-slate-900 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? isLight
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "bg-slate-800 text-white shadow-xs"
+                    : isLight
+                    ? "text-slate-600 hover:text-slate-900"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 Baseline Plan
@@ -341,7 +447,9 @@ export function PlanTimeline({
                 className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
                   viewMode === "proposed"
                     ? "bg-blue-600 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    : isLight
+                    ? "text-slate-600 hover:text-slate-900"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 Proposed Recovery
@@ -352,7 +460,9 @@ export function PlanTimeline({
                 className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
                   viewMode === "comparison"
                     ? "bg-purple-600 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    : isLight
+                    ? "text-slate-600 hover:text-slate-900"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 Comparison
@@ -360,14 +470,18 @@ export function PlanTimeline({
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
+          <div className="flex items-center gap-1.5 text-xs">
             <button
               type="button"
               onClick={() => setShowCriticalOnly(!showCriticalOnly)}
               className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
                 showCriticalOnly
-                  ? "bg-amber-50 text-amber-800 border-amber-300 font-semibold"
-                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                  ? isLight
+                    ? "bg-amber-50 text-amber-800 border-amber-300 font-semibold"
+                    : "bg-amber-950/50 text-amber-300 border-amber-700 font-semibold"
+                  : isLight
+                  ? "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                  : "bg-[#131b2e] text-slate-300 border-slate-700 hover:bg-slate-800"
               }`}
             >
               {showCriticalOnly ? "Show All Tasks" : "Critical Path Only"}
@@ -378,8 +492,12 @@ export function PlanTimeline({
               onClick={() => setShowConnectors(!showConnectors)}
               className={`px-2 py-1 rounded-md text-xs font-medium border transition-colors ${
                 showConnectors
-                  ? "bg-slate-100 text-slate-800 border-slate-300"
-                  : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                  ? isLight
+                    ? "bg-slate-100 text-slate-800 border-slate-300"
+                    : "bg-slate-800 text-slate-200 border-slate-600"
+                  : isLight
+                  ? "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                  : "bg-[#131b2e] text-slate-400 border-slate-700 hover:bg-slate-800"
               }`}
               title="Toggle Dependency Arrows"
             >
@@ -390,8 +508,20 @@ export function PlanTimeline({
       </div>
 
       {/* 2. Timeline Legend */}
-      <div className="px-4 py-2 border-b border-slate-100 bg-white flex flex-wrap items-center gap-4 text-[11px] text-slate-600">
-        <span className="font-semibold text-slate-500 uppercase tracking-wider text-[10px]">Legend:</span>
+      <div
+        className={`px-4 py-2 border-b flex flex-wrap items-center gap-4 text-[11px] transition-colors ${
+          isLight
+            ? "border-slate-100 bg-white text-slate-600"
+            : "border-slate-800 bg-[#0d1322] text-slate-300"
+        }`}
+      >
+        <span
+          className={`font-semibold uppercase tracking-wider text-[10px] ${
+            isLight ? "text-slate-500" : "text-slate-400"
+          }`}
+        >
+          Legend:
+        </span>
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded bg-rose-500 inline-block shadow-2xs" />
           <span>Critical Path (0 Float)</span>
@@ -401,7 +531,7 @@ export function PlanTimeline({
           <span>Flexible / Standard Task</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-slate-800 inline-block" />
+          <span className={`w-3 h-3 rounded inline-block ${isLight ? "bg-slate-800" : "bg-slate-400"}`} />
           <span>Fixed Foundation</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -410,16 +540,20 @@ export function PlanTimeline({
         </div>
         {viewMode === "comparison" && (
           <>
-            <div className="flex items-center gap-1.5 text-purple-700">
+            <div className={`flex items-center gap-1.5 ${isLight ? "text-purple-700" : "text-purple-400"}`}>
               <span className="w-3 h-3 rounded bg-purple-500 inline-block" />
               <span>Shifted in Recovery</span>
             </div>
-            <div className="flex items-center gap-1.5 text-emerald-700">
+            <div className={`flex items-center gap-1.5 ${isLight ? "text-emerald-700" : "text-emerald-400"}`}>
               <span className="w-3 h-3 rounded bg-emerald-500 inline-block" />
               <span>Added Task</span>
             </div>
-            <div className="flex items-center gap-1.5 text-rose-700">
-              <span className="w-3 h-3 rounded border border-dashed border-rose-500 bg-rose-50 inline-block" />
+            <div className={`flex items-center gap-1.5 ${isLight ? "text-rose-700" : "text-rose-400"}`}>
+              <span
+                className={`w-3 h-3 rounded border border-dashed border-rose-500 inline-block ${
+                  isLight ? "bg-rose-50" : "bg-rose-950/40"
+                }`}
+              />
               <span>Removed Task</span>
             </div>
           </>
@@ -431,12 +565,20 @@ export function PlanTimeline({
         <div className="min-w-[760px] relative select-none">
           {/* Timeline Header Time-Ticks Row */}
           <div
-            className="flex border-b border-slate-200 bg-slate-50/90 text-slate-600 font-mono text-[11px] sticky top-0 z-20"
+            className={`flex border-b font-mono text-[11px] sticky top-0 z-20 transition-colors ${
+              isLight
+                ? "border-slate-200 bg-slate-50/90 text-slate-600"
+                : "border-slate-800 bg-[#111827] text-slate-400"
+            }`}
             style={{ height: `${headerHeight}px` }}
           >
             {/* Task Name Column Header */}
             <div
-              className="px-3 flex items-center font-semibold text-slate-700 border-r border-slate-200 shrink-0 bg-slate-50/95"
+              className={`px-3 flex items-center font-semibold border-r shrink-0 transition-colors ${
+                isLight
+                  ? "text-slate-700 border-slate-200 bg-slate-50/95"
+                  : "text-slate-200 border-slate-800 bg-[#111827]"
+              }`}
               style={{ width: `${labelWidth}px` }}
             >
               Task ID &amp; Name
@@ -447,10 +589,12 @@ export function PlanTimeline({
               {timeTicks.map((tick) => (
                 <div
                   key={tick}
-                  className="absolute top-0 bottom-0 border-l border-slate-200/80 flex items-center pl-1 text-[10px]"
+                  className={`absolute top-0 bottom-0 border-l flex items-center pl-1 text-[10px] ${
+                    isLight ? "border-slate-200/80 text-slate-500" : "border-slate-800/80 text-slate-400"
+                  }`}
                   style={{ left: `${getPercent(tick)}%` }}
                 >
-                  <span className="text-slate-500">{tick}h</span>
+                  <span>{tick}h</span>
                 </div>
               ))}
 
@@ -461,7 +605,13 @@ export function PlanTimeline({
                   style={{ left: `${getPercent(maxDeadlineHours)}%` }}
                   title={`Project Deadline: ${maxDeadlineHours}h`}
                 >
-                  <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1 rounded">
+                  <span
+                    className={`text-[10px] font-bold px-1 rounded ${
+                      isLight
+                        ? "text-rose-600 bg-rose-50 border border-rose-200"
+                        : "text-rose-300 bg-rose-950/80 border border-rose-800"
+                    }`}
+                  >
                     Deadline {maxDeadlineHours}h
                   </span>
                 </div>
@@ -479,7 +629,9 @@ export function PlanTimeline({
               {timeTicks.map((tick) => (
                 <div
                   key={tick}
-                  className="absolute top-0 bottom-0 border-l border-slate-100"
+                  className={`absolute top-0 bottom-0 border-l ${
+                    isLight ? "border-slate-100" : "border-slate-800/50"
+                  }`}
                   style={{ left: `${getPercent(tick)}%` }}
                 />
               ))}
@@ -629,14 +781,24 @@ export function PlanTimeline({
               return (
                 <div
                   key={task.id}
-                  className={`flex items-center border-b border-slate-100 transition-colors ${
+                  className={`flex items-center border-b transition-colors ${
+                    isLight ? "border-slate-100" : "border-slate-800/60"
+                  } ${
                     isSelected
-                      ? "bg-blue-50/50"
+                      ? isLight
+                        ? "bg-teal-50/50"
+                        : "bg-teal-950/40"
                       : isHovered
-                      ? "bg-slate-50/80"
+                      ? isLight
+                        ? "bg-slate-50/80"
+                        : "bg-[#141d2f]"
                       : idx % 2 === 0
-                      ? "bg-white"
-                      : "bg-slate-50/30"
+                      ? isLight
+                        ? "bg-white"
+                        : "bg-[#0d1322]"
+                      : isLight
+                      ? "bg-slate-50/30"
+                      : "bg-[#101726]/40"
                   }`}
                   style={{ height: `${rowHeight}px` }}
                   onMouseEnter={() => setHoveredTaskId(task.id)}
@@ -644,15 +806,26 @@ export function PlanTimeline({
                 >
                   {/* Task Name / ID Sidebar Label */}
                   <div
-                    className="px-3 flex items-center justify-between border-r border-slate-200 shrink-0 cursor-pointer h-full"
+                    className={`px-3 flex items-center justify-between border-r shrink-0 cursor-pointer h-full transition-colors ${
+                      isLight ? "border-slate-200" : "border-slate-800"
+                    }`}
                     style={{ width: `${labelWidth}px` }}
                     onClick={() => handleTaskClick(task.id)}
                   >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-mono text-xs font-bold text-slate-800 shrink-0">
+                    <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                      <span
+                        className={`font-mono text-xs font-bold shrink-0 ${
+                          isLight ? "text-slate-800" : "text-teal-400"
+                        }`}
+                      >
                         {task.id}
                       </span>
-                      <span className="text-xs font-medium text-slate-700 truncate" title={task.title}>
+                      <span
+                        className={`text-xs font-semibold truncate ${
+                          isLight ? "text-slate-700" : "text-slate-200"
+                        }`}
+                        title={task.title}
+                      >
                         {task.title}
                       </span>
                     </div>
@@ -672,30 +845,32 @@ export function PlanTimeline({
                       onClick={() => handleTaskClick(task.id)}
                       className={`absolute h-7 rounded-md cursor-pointer transition-all flex items-center justify-between px-2 text-xs font-medium ${barBg} ${
                         isSelected
-                          ? "ring-2 ring-blue-500 ring-offset-1 z-30"
+                          ? "ring-2 ring-teal-400 ring-offset-1 z-30"
                           : isHovered
-                          ? "ring-1 ring-slate-400 z-20"
+                          ? isLight
+                            ? "ring-1 ring-slate-400 z-20"
+                            : "ring-1 ring-slate-500 z-20"
                           : "z-10"
                       }`}
                       style={{
                         left: `${barLeft}%`,
                         width: `${barWidth}%`,
-                        minWidth: "24px",
+                        minWidth: "34px",
                       }}
                       title={`${task.id}: ${task.title} (${task.durationHours}h) • Starts ${task.earliestStart}h, Finishes ${task.earliestFinish}h`}
                     >
-                      <span className="truncate text-[11px] leading-tight font-semibold">
+                      <span className="text-[11px] leading-tight font-bold font-mono whitespace-nowrap overflow-visible">
                         {task.durationHours}h
                       </span>
 
                       {task.isCritical && barWidth > 8 && (
-                        <span className="text-[9px] bg-rose-700/60 px-1 py-0.2 rounded font-mono uppercase tracking-wider shrink-0 ml-1">
+                        <span className="text-[9px] bg-rose-700/70 px-1 py-0.2 rounded font-mono uppercase tracking-wider shrink-0 ml-1">
                           Crit
                         </span>
                       )}
 
                       {task.diffState === "modified_start" && barWidth > 8 && (
-                        <span className="text-[9px] bg-purple-800/60 px-1 py-0.2 rounded shrink-0 ml-1">
+                        <span className="text-[9px] bg-purple-800/70 px-1 py-0.2 rounded shrink-0 ml-1">
                           Shifted
                         </span>
                       )}
@@ -710,18 +885,48 @@ export function PlanTimeline({
 
       {/* 4. Selected Task Inspection Panel */}
       {selectedTaskRecord && (
-        <div className="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-700 space-y-2">
+        <div
+          className={`p-4 border-t text-xs space-y-2 transition-colors ${
+            isLight
+              ? "bg-slate-50 border-slate-200 text-slate-700"
+              : "bg-[#111827] border-slate-800 text-slate-200"
+          }`}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded font-mono font-bold bg-blue-100 text-blue-900 text-xs">
+              <span
+                className={`px-2 py-0.5 rounded font-mono font-bold text-xs ${
+                  isLight
+                    ? "bg-blue-100 text-blue-900"
+                    : "bg-teal-950/80 text-teal-300 border border-teal-800"
+                }`}
+              >
                 {selectedTaskRecord.id}
               </span>
-              <strong className="text-sm text-slate-900">{selectedTaskRecord.title}</strong>
-              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-800 uppercase">
+              <strong
+                className={`text-sm ${
+                  isLight ? "text-slate-900" : "text-white"
+                }`}
+              >
+                {selectedTaskRecord.title}
+              </strong>
+              <span
+                className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                  isLight
+                    ? "bg-slate-200 text-slate-800"
+                    : "bg-slate-800 text-slate-300 border border-slate-700"
+                }`}
+              >
                 {selectedTaskRecord.policy}
               </span>
               {selectedTaskRecord.isCritical && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-800 border border-rose-300">
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                    isLight
+                      ? "bg-rose-100 text-rose-800 border-rose-300"
+                      : "bg-rose-950/80 text-rose-300 border-rose-800"
+                  }`}
+                >
                   Critical Path Task
                 </span>
               )}
@@ -730,41 +935,111 @@ export function PlanTimeline({
             <button
               type="button"
               onClick={() => setInternalSelectedTaskId(null)}
-              className="text-xs text-slate-400 hover:text-slate-600 font-semibold"
+              className={`text-xs font-semibold ${
+                isLight
+                  ? "text-slate-400 hover:text-slate-600"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
             >
               Close Inspector
             </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-            <div className="p-2 bg-white rounded-lg border border-slate-200">
-              <span className="text-[10px] font-semibold uppercase text-slate-400 block">Earliest Start &amp; Finish</span>
-              <span className="text-xs font-bold text-slate-900">
+            <div
+              className={`p-2.5 rounded-lg border transition-colors ${
+                isLight
+                  ? "bg-white border-slate-200"
+                  : "bg-[#151f32] border-slate-700/80 text-slate-200"
+              }`}
+            >
+              <span
+                className={`text-[10px] font-semibold uppercase block ${
+                  isLight ? "text-slate-400" : "text-slate-400"
+                }`}
+              >
+                Earliest Start &amp; Finish
+              </span>
+              <span
+                className={`text-xs font-bold ${
+                  isLight ? "text-slate-900" : "text-white"
+                }`}
+              >
                 {selectedTaskRecord.earliestStart}h &rarr; {selectedTaskRecord.earliestFinish}h
               </span>
             </div>
 
-            <div className="p-2 bg-white rounded-lg border border-slate-200">
-              <span className="text-[10px] font-semibold uppercase text-slate-400 block">Duration &amp; Cost</span>
-              <span className="text-xs font-bold text-slate-900">
+            <div
+              className={`p-2.5 rounded-lg border transition-colors ${
+                isLight
+                  ? "bg-white border-slate-200"
+                  : "bg-[#151f32] border-slate-700/80 text-slate-200"
+              }`}
+            >
+              <span
+                className={`text-[10px] font-semibold uppercase block ${
+                  isLight ? "text-slate-400" : "text-slate-400"
+                }`}
+              >
+                Duration &amp; Cost
+              </span>
+              <span
+                className={`text-xs font-bold ${
+                  isLight ? "text-slate-900" : "text-white"
+                }`}
+              >
                 {selectedTaskRecord.durationHours} Hours &bull; ₹{selectedTaskRecord.cost.toLocaleString()}
               </span>
             </div>
 
-            <div className="p-2 bg-white rounded-lg border border-slate-200">
-              <span className="text-[10px] font-semibold uppercase text-slate-400 block">Critical Path Float</span>
+            <div
+              className={`p-2.5 rounded-lg border transition-colors ${
+                isLight
+                  ? "bg-white border-slate-200"
+                  : "bg-[#151f32] border-slate-700/80 text-slate-200"
+              }`}
+            >
+              <span
+                className={`text-[10px] font-semibold uppercase block ${
+                  isLight ? "text-slate-400" : "text-slate-400"
+                }`}
+              >
+                Critical Path Float
+              </span>
               <span
                 className={`text-xs font-bold ${
-                  selectedTaskRecord.isCritical ? "text-rose-600" : "text-emerald-700"
+                  selectedTaskRecord.isCritical
+                    ? isLight
+                      ? "text-rose-600"
+                      : "text-rose-400"
+                    : isLight
+                    ? "text-emerald-700"
+                    : "text-emerald-400"
                 }`}
               >
                 {selectedTaskRecord.criticalPathFloat}h Float
               </span>
             </div>
 
-            <div className="p-2 bg-white rounded-lg border border-slate-200">
-              <span className="text-[10px] font-semibold uppercase text-slate-400 block">Deadline Slack</span>
-              <span className="text-xs font-bold text-slate-900">
+            <div
+              className={`p-2.5 rounded-lg border transition-colors ${
+                isLight
+                  ? "bg-white border-slate-200"
+                  : "bg-[#151f32] border-slate-700/80 text-slate-200"
+              }`}
+            >
+              <span
+                className={`text-[10px] font-semibold uppercase block ${
+                  isLight ? "text-slate-400" : "text-slate-400"
+                }`}
+              >
+                Deadline Slack
+              </span>
+              <span
+                className={`text-xs font-bold ${
+                  isLight ? "text-slate-900" : "text-white"
+                }`}
+              >
                 {selectedTaskRecord.deadlineSlack !== undefined
                   ? `${selectedTaskRecord.deadlineSlack}h Slack`
                   : "No Deadline Set"}
@@ -775,36 +1050,48 @@ export function PlanTimeline({
           {/* Dependencies breakdown */}
           <div className="flex flex-col sm:flex-row gap-3 pt-1 text-[11px]">
             <div className="flex-1">
-              <span className="font-semibold text-slate-500">Blocking Predecessors:</span>{" "}
+              <span className={`font-semibold ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                Blocking Predecessors:
+              </span>{" "}
               {selectedTaskRecord.predecessorIds.length > 0 ? (
                 selectedTaskRecord.predecessorIds.map((p) => (
                   <button
                     key={p}
                     onClick={() => handleTaskClick(p)}
-                    className="font-mono text-blue-700 hover:underline mr-1 font-semibold"
+                    className={`font-mono mr-1 font-semibold hover:underline ${
+                      isLight ? "text-blue-700" : "text-teal-400"
+                    }`}
                   >
                     {p}
                   </button>
                 ))
               ) : (
-                <span className="text-slate-400 italic">None (Starts at Project Zero)</span>
+                <span className={isLight ? "text-slate-400 italic" : "text-slate-500 italic"}>
+                  None (Starts at Project Zero)
+                </span>
               )}
             </div>
 
             <div className="flex-1">
-              <span className="font-semibold text-slate-500">Direct Dependent Successors:</span>{" "}
+              <span className={`font-semibold ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                Direct Dependent Successors:
+              </span>{" "}
               {selectedTaskRecord.successorIds.length > 0 ? (
                 selectedTaskRecord.successorIds.map((s) => (
                   <button
                     key={s}
                     onClick={() => handleTaskClick(s)}
-                    className="font-mono text-blue-700 hover:underline mr-1 font-semibold"
+                    className={`font-mono mr-1 font-semibold hover:underline ${
+                      isLight ? "text-blue-700" : "text-teal-400"
+                    }`}
                   >
                     {s}
                   </button>
                 ))
               ) : (
-                <span className="text-slate-400 italic">None (Terminal Task)</span>
+                <span className={isLight ? "text-slate-400 italic" : "text-slate-500 italic"}>
+                  None (Terminal Task)
+                </span>
               )}
             </div>
           </div>

@@ -5,6 +5,7 @@ import type { Plan } from "../lib/schemas/plan.schema";
 import type { CandidateEvaluationResult } from "../lib/engine/evaluate-candidates";
 import type { CandidatePatch } from "../lib/schemas/patch.schema";
 import { PlanTimeline } from "./plan/PlanTimeline";
+import { useTheme } from "../lib/theme-context";
 import {
   GitCompare,
   CheckCircle,
@@ -37,6 +38,8 @@ export function DiffViewer({
   onAcceptPreview,
   onRevertPreview,
 }: DiffViewerProps) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const [diffViewTab, setDiffViewTab] = useState<"timeline" | "table">("timeline");
 
   const baselineCost = baselinePlan.tasks.reduce((sum, t) => sum + t.cost, 0);
@@ -58,20 +61,36 @@ export function DiffViewer({
   const preservedTaskIds = new Set(candidateEvaluation.preservedTaskIds);
 
   return (
-    <section className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 space-y-6">
+    <section
+      className={`rounded-xl p-6 space-y-6 transition-colors border ${
+        isLight
+          ? "bg-white border-slate-200/80 shadow-sm text-slate-900"
+          : "bg-[#0d1322] border-slate-800 shadow-xl text-slate-100"
+      }`}
+    >
       {/* Diff Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+      <div
+        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b ${
+          isLight ? "border-slate-100" : "border-slate-800"
+        }`}
+      >
         <div>
           <div className="flex items-center gap-2">
-            <GitCompare className="w-5 h-5 text-indigo-600" />
-            <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+            <GitCompare className={`w-5 h-5 ${isLight ? "text-indigo-600" : "text-teal-400"}`} />
+            <h3 className={`text-lg font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
               Candidate Diff & Impact Inspector
             </h3>
-            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span
+              className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${
+                isLight
+                  ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                  : "bg-teal-950/60 text-teal-300 border-teal-800/80"
+              }`}
+            >
               {candidateEvaluation.candidateId}
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className={`text-xs mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             Comparing Baseline Plan against candidate: &ldquo;{candidateEvaluation.label}&rdquo;
           </p>
         </div>
@@ -80,14 +99,24 @@ export function DiffViewer({
         <div className="flex items-center gap-2">
           {isPreviewActive ? (
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300">
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${
+                  isLight
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                    : "bg-emerald-950/60 text-emerald-300 border-emerald-800/80"
+                }`}
+              >
                 <Check className="w-3.5 h-3.5" />
                 Active Local Preview
               </span>
               <button
                 type="button"
                 onClick={onRevertPreview}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                  isLight
+                    ? "text-slate-700 bg-white border-slate-300 hover:bg-slate-50"
+                    : "text-slate-200 bg-slate-800/90 border-slate-700 hover:bg-slate-700"
+                }`}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Revert to Baseline
@@ -97,7 +126,11 @@ export function DiffViewer({
             <button
               type="button"
               onClick={() => onAcceptPreview(candidateEvaluation.candidatePlan)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 transition shadow-xs"
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition shadow-xs ${
+                isLight
+                  ? "text-white bg-slate-900 hover:bg-slate-800"
+                  : "text-slate-950 bg-teal-400 hover:bg-teal-300 font-bold"
+              }`}
             >
               <span>Accept & Preview Patch</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -109,79 +142,133 @@ export function DiffViewer({
       {/* Plan-Level Impact Comparison */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Cost Comparison */}
-        <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200/80">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Coins className="w-3.5 h-3.5 text-slate-400" />
+        <div
+          className={`p-3.5 rounded-lg border ${
+            isLight ? "bg-slate-50 border-slate-200/80" : "bg-[#131b2e] border-slate-800"
+          }`}
+        >
+          <div
+            className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
+            <Coins className={`w-3.5 h-3.5 ${isLight ? "text-slate-400" : "text-slate-500"}`} />
             Total Cost
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-base font-bold text-slate-900 font-mono">
+            <span
+              className={`text-base font-bold font-mono ${
+                isLight ? "text-slate-900" : "text-white"
+              }`}
+            >
               ₹{candidateCost.toLocaleString()}
             </span>
             <span
               className={`text-xs font-semibold font-mono ${
                 costDelta < 0
-                  ? "text-emerald-700"
+                  ? isLight
+                    ? "text-emerald-700"
+                    : "text-emerald-400"
                   : costDelta > 0
-                  ? "text-amber-700"
-                  : "text-slate-500"
+                  ? isLight
+                    ? "text-amber-700"
+                    : "text-amber-400"
+                  : isLight
+                  ? "text-slate-500"
+                  : "text-slate-400"
               }`}
             >
-              {costDelta > 0 ? `+₹${costDelta.toLocaleString()}` : costDelta < 0 ? `-₹${Math.abs(costDelta).toLocaleString()}` : "±₹0"}
+              {costDelta > 0
+                ? `+₹${costDelta.toLocaleString()}`
+                : costDelta < 0
+                ? `-₹${Math.abs(costDelta).toLocaleString()}`
+                : "±₹0"}
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">
+          <div className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             Baseline: ₹{baselineCost.toLocaleString()} &bull; Budget: ₹
             {(candidateEvaluation.budgetLimit ?? baselinePlan.constraints.budgetLimit ?? 25000).toLocaleString()}
           </div>
         </div>
 
         {/* Schedule Finish Comparison */}
-        <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200/80">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
+        <div
+          className={`p-3.5 rounded-lg border ${
+            isLight ? "bg-slate-50 border-slate-200/80" : "bg-[#131b2e] border-slate-800"
+          }`}
+        >
+          <div
+            className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
+            <Clock className={`w-3.5 h-3.5 ${isLight ? "text-slate-400" : "text-slate-500"}`} />
             Earliest Finish
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-base font-bold text-slate-900 font-mono">
+            <span
+              className={`text-base font-bold font-mono ${
+                isLight ? "text-slate-900" : "text-white"
+              }`}
+            >
               {candidateFinish}h
             </span>
             <span
               className={`text-xs font-semibold font-mono ${
                 finishDelta < 0
-                  ? "text-emerald-700"
+                  ? isLight
+                    ? "text-emerald-700"
+                    : "text-emerald-400"
                   : finishDelta > 0
-                  ? "text-amber-700"
-                  : "text-slate-500"
+                  ? isLight
+                    ? "text-amber-700"
+                    : "text-amber-400"
+                  : isLight
+                  ? "text-slate-500"
+                  : "text-slate-400"
               }`}
             >
               {finishDelta > 0 ? `+${finishDelta}h` : finishDelta < 0 ? `${finishDelta}h` : "±0h"}
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">
+          <div className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             Baseline: {baselineFinish}h &bull; Deadline: {effectiveDeadline}h
           </div>
         </div>
 
         {/* Schedule Slack */}
-        <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200/80">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Sliders className="w-3.5 h-3.5 text-slate-400" />
+        <div
+          className={`p-3.5 rounded-lg border ${
+            isLight ? "bg-slate-50 border-slate-200/80" : "bg-[#131b2e] border-slate-800"
+          }`}
+        >
+          <div
+            className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
+            <Sliders className={`w-3.5 h-3.5 ${isLight ? "text-slate-400" : "text-slate-500"}`} />
             Remaining Slack
           </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span
               className={`text-base font-bold font-mono ${
-                candidateSlack >= 0 ? "text-emerald-700" : "text-red-700"
+                candidateSlack >= 0
+                  ? isLight
+                    ? "text-emerald-700"
+                    : "text-emerald-400"
+                  : isLight
+                  ? "text-red-700"
+                  : "text-red-400"
               }`}
             >
               {candidateSlack}h
             </span>
-            <span className="text-xs text-slate-500">
+            <span className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
               {candidateSlack >= 24 ? "Healthy buffer" : candidateSlack > 0 ? "Tight margin" : "Overdue"}
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">
+          <div className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             Effective deadline: {effectiveDeadline}h
           </div>
         </div>
@@ -189,25 +276,41 @@ export function DiffViewer({
 
       {/* Impact Detail Switcher: Timeline Comparison vs Task Table */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
-          <div className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+        <div
+          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b ${
+            isLight ? "border-slate-100" : "border-slate-800"
+          }`}
+        >
+          <div
+            className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 ${
+              isLight ? "text-slate-700" : "text-slate-300"
+            }`}
+          >
             <span>Candidate Impact Analysis</span>
-            <span className="text-slate-400 font-normal">
+            <span className={isLight ? "text-slate-400 font-normal" : "text-slate-500 font-normal"}>
               ({changedTaskIds.size} changed, {removedTaskIds.size} removed)
             </span>
           </div>
 
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 self-start sm:self-auto">
+          <div
+            className={`flex items-center p-0.5 rounded-lg border self-start sm:self-auto ${
+              isLight ? "bg-slate-100 border-slate-200" : "bg-slate-900 border-slate-800"
+            }`}
+          >
             <button
               type="button"
               onClick={() => setDiffViewTab("timeline")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
                 diffViewTab === "timeline"
-                  ? "bg-white text-slate-900 shadow-xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? isLight
+                    ? "bg-white text-slate-900 shadow-xs font-semibold"
+                    : "bg-[#131b2e] text-teal-300 shadow-xs font-semibold"
+                  : isLight
+                  ? "text-slate-600 hover:text-slate-900"
+                  : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Clock className="w-3.5 h-3.5 text-indigo-600" />
+              <Clock className={`w-3.5 h-3.5 ${isLight ? "text-indigo-600" : "text-teal-400"}`} />
               <span>Schedule Timeline Comparison</span>
             </button>
             <button
@@ -215,11 +318,15 @@ export function DiffViewer({
               onClick={() => setDiffViewTab("table")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
                 diffViewTab === "table"
-                  ? "bg-white text-slate-900 shadow-xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? isLight
+                    ? "bg-white text-slate-900 shadow-xs font-semibold"
+                    : "bg-[#131b2e] text-teal-300 shadow-xs font-semibold"
+                  : isLight
+                  ? "text-slate-600 hover:text-slate-900"
+                  : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Layers className="w-3.5 h-3.5 text-slate-600" />
+              <Layers className={`w-3.5 h-3.5 ${isLight ? "text-slate-600" : "text-slate-400"}`} />
               <span>Task Modifications Table</span>
             </button>
           </div>
@@ -234,9 +341,23 @@ export function DiffViewer({
             initialMode="comparison"
           />
         ) : (
-          <div className="border border-slate-200 rounded-lg overflow-x-auto shadow-xs">
-            <table className="w-full text-left text-xs text-slate-600">
-              <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+          <div
+            className={`border rounded-lg overflow-x-auto shadow-xs ${
+              isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-[#0d1322]"
+            }`}
+          >
+            <table
+              className={`w-full text-left text-xs ${
+                isLight ? "text-slate-600" : "text-slate-300"
+              }`}
+            >
+              <thead
+                className={`font-semibold border-b ${
+                  isLight
+                    ? "bg-slate-50 text-slate-700 border-slate-200"
+                    : "bg-slate-900/90 text-slate-300 border-slate-800"
+                }`}
+              >
                 <tr>
                   <th className="py-2.5 px-3">Task ID</th>
                   <th className="py-2.5 px-3">Status</th>
@@ -247,7 +368,7 @@ export function DiffViewer({
                   <th className="py-2.5 px-3">Policy</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className={`divide-y ${isLight ? "divide-slate-100" : "divide-slate-800/80"}`}>
                 {baselinePlan.tasks.map((baseTask) => {
                   const isChanged = changedTaskIds.has(baseTask.id);
                   const isRemoved = removedTaskIds.has(baseTask.id);
@@ -257,10 +378,15 @@ export function DiffViewer({
 
                   if (!isChanged && !isRemoved) {
                     return (
-                      <tr key={baseTask.id} className="text-slate-400 opacity-60">
+                      <tr
+                        key={baseTask.id}
+                        className={isLight ? "text-slate-400 opacity-60" : "text-slate-500 opacity-50"}
+                      >
                         <td className="py-2 px-3 font-mono font-semibold">{baseTask.id}</td>
                         <td className="py-2 px-3">
-                          <span className="text-[11px] text-slate-500">Preserved</span>
+                          <span className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                            Preserved
+                          </span>
                         </td>
                         <td className="py-2 px-3">{baseTask.title}</td>
                         <td className="py-2 px-3 font-mono">—</td>
@@ -273,16 +399,43 @@ export function DiffViewer({
 
                   if (isRemoved) {
                     return (
-                      <tr key={baseTask.id} className="bg-red-50/50">
-                        <td className="py-2 px-3 font-mono font-bold text-red-900">{baseTask.id}</td>
+                      <tr
+                        key={baseTask.id}
+                        className={isLight ? "bg-red-50/50" : "bg-red-950/20"}
+                      >
+                        <td
+                          className={`py-2 px-3 font-mono font-bold ${
+                            isLight ? "text-red-900" : "text-red-400"
+                          }`}
+                        >
+                          {baseTask.id}
+                        </td>
                         <td className="py-2 px-3">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-800">
+                          <span
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                              isLight
+                                ? "bg-red-100 text-red-800"
+                                : "bg-red-950/80 text-red-300 border border-red-800/60"
+                            }`}
+                          >
                             Removed
                           </span>
                         </td>
-                        <td className="py-2 px-3 line-through text-slate-600">{baseTask.title}</td>
-                        <td className="py-2 px-3 text-red-700 italic">Task dropped from plan</td>
-                        <td className="py-2 px-3 text-emerald-700 font-mono">
+                        <td
+                          className={`py-2 px-3 line-through ${
+                            isLight ? "text-slate-600" : "text-slate-400"
+                          }`}
+                        >
+                          {baseTask.title}
+                        </td>
+                        <td className={`py-2 px-3 italic ${isLight ? "text-red-700" : "text-red-400"}`}>
+                          Task dropped from plan
+                        </td>
+                        <td
+                          className={`py-2 px-3 font-mono ${
+                            isLight ? "text-emerald-700" : "text-emerald-400"
+                          }`}
+                        >
                           -₹{baseTask.cost.toLocaleString()}
                         </td>
                         <td className="py-2 px-3 line-through">{baseTask.durationHours}h</td>
@@ -294,33 +447,68 @@ export function DiffViewer({
                   // isChanged
                   const taskDelta = candTask ? candTask.cost - baseTask.cost : 0;
                   return (
-                    <tr key={baseTask.id} className="bg-indigo-50/50">
-                      <td className="py-2 px-3 font-mono font-bold text-indigo-900">{baseTask.id}</td>
+                    <tr
+                      key={baseTask.id}
+                      className={isLight ? "bg-indigo-50/50" : "bg-teal-950/20"}
+                    >
+                      <td
+                        className={`py-2 px-3 font-mono font-bold ${
+                          isLight ? "text-indigo-900" : "text-teal-400"
+                        }`}
+                      >
+                        {baseTask.id}
+                      </td>
                       <td className="py-2 px-3">
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-800">
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                            isLight
+                              ? "bg-indigo-100 text-indigo-800"
+                              : "bg-teal-950/80 text-teal-300 border border-teal-800/60"
+                          }`}
+                        >
                           Modified
                         </span>
                       </td>
-                      <td className="py-2 px-3 text-slate-500">{baseTask.title}</td>
-                      <td className="py-2 px-3 font-medium text-slate-900">
+                      <td className={`py-2 px-3 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                        {baseTask.title}
+                      </td>
+                      <td
+                        className={`py-2 px-3 font-medium ${
+                          isLight ? "text-slate-900" : "text-slate-100"
+                        }`}
+                      >
                         {candTask?.title}
                         {baseTask.title !== candTask?.title && (
-                          <span className="block text-[10px] text-indigo-600">
+                          <span
+                            className={`block text-[10px] ${
+                              isLight ? "text-indigo-600" : "text-teal-400"
+                            }`}
+                          >
                             (Substituted alternative)
                           </span>
                         )}
                       </td>
                       <td className="py-2 px-3 font-mono">
-                        <span className="text-slate-900 font-semibold">
+                        <span
+                          className={`font-semibold ${
+                            isLight ? "text-slate-900" : "text-slate-100"
+                          }`}
+                        >
                           ₹{candTask?.cost.toLocaleString()}
                         </span>{" "}
                         <span
                           className={`text-[11px] ${
                             taskDelta < 0
-                              ? "text-emerald-700"
+                              ? isLight
+                                ? "text-emerald-700"
+                                : "text-emerald-400"
                               : taskDelta > 0
-                              ? "text-amber-700"
-                              : "text-slate-500"
+                              ? isLight
+                                ? "text-amber-700"
+                                : "text-amber-400"
+                              : isLight
+                              ? "text-slate-500"
+                              : "text-slate-400"
                           }`}
                         >
                           ({taskDelta > 0 ? `+₹${taskDelta}` : taskDelta < 0 ? `-₹${Math.abs(taskDelta)}` : "±0"})
@@ -329,7 +517,11 @@ export function DiffViewer({
                       <td className="py-2 px-3 font-mono">
                         {candTask?.durationHours}h{" "}
                         {candTask && candTask.durationHours !== baseTask.durationHours && (
-                          <span className="text-[10px] text-slate-500">
+                          <span
+                            className={`text-[10px] ${
+                              isLight ? "text-slate-500" : "text-slate-400"
+                            }`}
+                          >
                             (was {baseTask.durationHours}h)
                           </span>
                         )}
@@ -345,10 +537,16 @@ export function DiffViewer({
       </div>
 
       {/* Persistence Disclaimer Banner */}
-      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/70 text-xs text-slate-600 flex items-start gap-2">
-        <Info className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+      <div
+        className={`p-3 rounded-lg border text-xs flex items-start gap-2 ${
+          isLight
+            ? "bg-slate-50 border-slate-200/70 text-slate-600"
+            : "bg-[#131b2e] border-slate-800 text-slate-300"
+        }`}
+      >
+        <Info className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isLight ? "text-slate-400" : "text-slate-500"}`} />
         <div>
-          <span className="font-semibold text-slate-800">
+          <span className={`font-semibold ${isLight ? "text-slate-800" : "text-slate-100"}`}>
             Local Workspace Preview Note:
           </span>{" "}
           Accepting this candidate updates the local active plan in memory to explore schedule and

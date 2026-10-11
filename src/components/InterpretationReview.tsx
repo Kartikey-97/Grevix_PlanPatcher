@@ -3,6 +3,7 @@
 import React from "react";
 import type { Plan } from "../lib/schemas/plan.schema";
 import type { InterpretationResult } from "../lib/ai/disruption-interpreter";
+import { useTheme } from "../lib/theme-context";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -34,6 +35,7 @@ export function InterpretationReview({
   isRunningRecovery,
   onSelectSuggestion,
 }: InterpretationReviewProps) {
+  const { isLight, isDark } = useTheme();
   if (result.status === "error") {
     return (
       <section className="bg-red-50/70 border border-red-200 rounded-xl p-6 shadow-sm space-y-4">
@@ -184,24 +186,48 @@ export function InterpretationReview({
     : undefined;
 
   return (
-    <section className="bg-white rounded-xl border border-indigo-100 shadow-sm p-6 space-y-5">
+    <section
+      className={`rounded-xl border shadow-sm p-6 space-y-5 transition-colors ${
+        isLight
+          ? "bg-white border-slate-200/80 text-slate-900"
+          : "bg-[#0d1322] border-slate-800 text-slate-100"
+      }`}
+    >
       {/* Step Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+      <div
+        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b transition-colors ${
+          isLight ? "border-slate-100" : "border-slate-800"
+        }`}
+      >
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+          <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-xs">
             <CheckCircle2 className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 tracking-tight">
+            <h3
+              className={`text-base font-bold tracking-tight ${
+                isLight ? "text-slate-900" : "text-white"
+              }`}
+            >
               Review Interpreted Disruption
             </h3>
-            <p className="text-xs text-slate-500">
+            <p
+              className={`text-xs ${
+                isLight ? "text-slate-500" : "text-slate-400"
+              }`}
+            >
               Grounded representation extracted from: &ldquo;{result.originalPrompt}&rdquo;
             </p>
           </div>
         </div>
 
-        <span className="text-xs font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full self-start sm:self-auto">
+        <span
+          className={`text-xs font-medium px-2.5 py-1 rounded-full border self-start sm:self-auto ${
+            isLight
+              ? "text-emerald-800 bg-emerald-50 border-emerald-200"
+              : "text-emerald-300 bg-emerald-950/60 border-emerald-800"
+          }`}
+        >
           Interpretation Ready for Review
         </span>
       </div>
@@ -209,54 +235,110 @@ export function InterpretationReview({
       {/* Structured Fields Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Disruption Type */}
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/70">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div
+          className={`p-3 rounded-lg border transition-colors ${
+            isLight
+              ? "bg-slate-50 border-slate-200/70"
+              : "bg-[#131b2e] border-slate-800"
+          }`}
+        >
+          <div
+            className={`text-[11px] font-semibold uppercase tracking-wider ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             Disruption Type
           </div>
-          <div className="mt-1 font-mono text-sm font-bold text-slate-900">
+          <div
+            className={`mt-1 font-mono text-sm font-bold ${
+              isLight ? "text-slate-900" : "text-teal-400"
+            }`}
+          >
             {disruption.type}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">
+          <div
+            className={`text-xs mt-0.5 ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             Normalized category
           </div>
         </div>
 
         {/* Target Entity / Field */}
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/70">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div
+          className={`p-3 rounded-lg border transition-colors ${
+            isLight
+              ? "bg-slate-50 border-slate-200/70"
+              : "bg-[#131b2e] border-slate-800"
+          }`}
+        >
+          <div
+            className={`text-[11px] font-semibold uppercase tracking-wider ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             Target Parameter / Task
           </div>
-          <div className="mt-1 text-sm font-bold text-slate-900 flex items-center gap-1.5">
+          <div
+            className={`mt-1 text-sm font-bold flex items-center gap-1.5 ${
+              isLight ? "text-slate-900" : "text-white"
+            }`}
+          >
             {disruption.targetTaskId ? (
               <>
-                <span className="font-mono text-indigo-700">
+                <span className="font-mono text-teal-400">
                   {disruption.targetTaskId}
                 </span>
                 {targetTask && (
-                  <span className="text-xs font-normal text-slate-600 truncate">
+                  <span
+                    className={`text-xs font-normal truncate ${
+                      isLight ? "text-slate-600" : "text-slate-300"
+                    }`}
+                  >
                     ({targetTask.title})
                   </span>
                 )}
               </>
             ) : disruption.field ? (
-              <span className="font-mono text-indigo-700">
+              <span className="font-mono text-teal-400">
                 {disruption.field}
               </span>
             ) : (
-              <span className="text-slate-500 font-normal">Plan-level</span>
+              <span className={isLight ? "text-slate-500 font-normal" : "text-slate-400 font-normal"}>
+                Plan-level
+              </span>
             )}
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">
+          <div
+            className={`text-xs mt-0.5 ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             Field: {disruption.field ?? "n/a"}
           </div>
         </div>
 
         {/* Value Transition */}
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/70">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div
+          className={`p-3 rounded-lg border transition-colors ${
+            isLight
+              ? "bg-slate-50 border-slate-200/70"
+              : "bg-[#131b2e] border-slate-800"
+          }`}
+        >
+          <div
+            className={`text-[11px] font-semibold uppercase tracking-wider ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             Value Shift
           </div>
-          <div className="mt-1 text-sm font-semibold text-slate-900 flex items-center gap-2">
+          <div
+            className={`mt-1 text-sm font-semibold flex items-center gap-2 ${
+              isLight ? "text-slate-900" : "text-white"
+            }`}
+          >
             {disruption.oldValue !== undefined && (
               <>
                 <span className="text-slate-500 line-through text-xs font-mono">
@@ -265,40 +347,72 @@ export function InterpretationReview({
                 <span className="text-slate-400">→</span>
               </>
             )}
-            <span className="text-indigo-600 font-mono font-bold">
+            <span className="text-teal-400 font-mono font-bold">
               {disruption.newValue !== undefined
                 ? String(disruption.newValue)
                 : "unavailable"}
             </span>
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">
+          <div
+            className={`text-xs mt-0.5 ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             Effective new parameter
           </div>
         </div>
       </div>
 
       {/* Description & Reasoning */}
-      <div className="p-3.5 bg-slate-50/70 rounded-lg border border-slate-200/70 space-y-1.5">
-        <div className="text-xs font-semibold text-slate-700">
+      <div
+        className={`p-3.5 rounded-lg border space-y-1.5 transition-colors ${
+          isLight
+            ? "bg-slate-50/70 border-slate-200/70"
+            : "bg-[#111827] border-slate-800"
+        }`}
+      >
+        <div
+          className={`text-xs font-semibold ${
+            isLight ? "text-slate-700" : "text-slate-300"
+          }`}
+        >
           Interpretation Summary:
         </div>
-        <p className="text-xs text-slate-600 leading-relaxed">
+        <p
+          className={`text-xs leading-relaxed ${
+            isLight ? "text-slate-600" : "text-slate-300"
+          }`}
+        >
           {disruption.description}
         </p>
         {result.reasoning && (
-          <p className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-200/50">
+          <p
+            className={`text-[11px] italic pt-1 border-t ${
+              isLight
+                ? "text-slate-500 border-slate-200/50"
+                : "text-slate-400 border-slate-800"
+            }`}
+          >
             Grounding rationale: {result.reasoning}
           </p>
         )}
       </div>
 
       {/* Deliberate Confirmation Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+      <div
+        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t transition-colors ${
+          isLight ? "border-slate-100" : "border-slate-800"
+        }`}
+      >
         <button
           type="button"
           onClick={onCancel}
           disabled={isRunningRecovery}
-          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition"
+          className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border disabled:opacity-50 transition ${
+            isLight
+              ? "text-slate-700 bg-white border-slate-300 hover:bg-slate-50"
+              : "text-slate-200 bg-slate-800 border-slate-700 hover:bg-slate-700"
+          }`}
         >
           <RotateCcw className="w-3.5 h-3.5" />
           Cancel & Edit Input
@@ -309,7 +423,7 @@ export function InterpretationReview({
             type="button"
             onClick={onConfirm}
             disabled={isRunningRecovery}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
           >
             {isRunningRecovery ? (
               <>

@@ -21,6 +21,7 @@ import type {
   InterpretationResult,
   ConversationMessage,
 } from "../lib/ai/disruption-interpreter";
+import { useTheme } from "../lib/theme-context";
 
 interface ExamplePrompt {
   label: string;
@@ -97,6 +98,7 @@ export function DisruptionInput({
   conversationHistory: externalHistory,
   onResetConversation,
 }: DisruptionInputProps) {
+  const { isLight, isDark } = useTheme();
   const [prompt, setPrompt] = useState("");
   const [activeScenarioId, setActiveScenarioId] = useState<string | undefined>();
   const [localHistory, setLocalHistory] = useState<ConversationMessage[]>(
@@ -215,15 +217,33 @@ export function DisruptionInput({
       : undefined;
 
   return (
-    <section className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 space-y-5">
+    <section
+      className={`rounded-xl border shadow-sm p-6 space-y-5 transition-colors ${
+        isLight
+          ? "bg-white border-slate-200/80 text-slate-900"
+          : "bg-[#0d1322] border-slate-800 text-slate-100"
+      }`}
+    >
       {/* Header with Title and Assistant Status */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+      <div
+        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b transition-colors ${
+          isLight ? "border-slate-100" : "border-slate-800"
+        }`}
+      >
         <div>
-          <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-indigo-600" />
+          <h3
+            className={`text-base font-bold tracking-tight flex items-center gap-2 ${
+              isLight ? "text-slate-900" : "text-white"
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-teal-500" />
             <span>Conversational Recovery Assistant</span>
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p
+            className={`text-xs mt-0.5 ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             Describe cancellations, budget cuts, or schedule changes. Multi-turn grounding maintains recent context.
           </p>
         </div>
@@ -233,14 +253,24 @@ export function DisruptionInput({
             <button
               type="button"
               onClick={handleReset}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition"
+              className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md transition ${
+                isLight
+                  ? "text-slate-600 bg-slate-100 hover:bg-slate-200"
+                  : "text-slate-300 bg-slate-800 hover:bg-slate-700"
+              }`}
               title="Clear conversation history and start fresh"
             >
               <RotateCcw className="w-3 h-3" />
               Reset Conversation
             </button>
           )}
-          <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
+          <span
+            className={`text-[11px] font-medium px-2.5 py-1 rounded-md border ${
+              isLight
+                ? "text-slate-500 bg-slate-100 border-slate-200"
+                : "text-slate-400 bg-slate-800/80 border-slate-700"
+            }`}
+          >
             AI Interpreter (Gemini) • Grounded in Active Plan
           </span>
         </div>
@@ -248,9 +278,19 @@ export function DisruptionInput({
 
       {/* Multi-turn Conversation Session History */}
       {activeHistory.length > 0 && (
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/70 space-y-3">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-            <MessageSquare className="w-3.5 h-3.5 text-indigo-500" />
+        <div
+          className={`rounded-xl p-4 border space-y-3 transition-colors ${
+            isLight
+              ? "bg-slate-50 border-slate-200/70"
+              : "bg-[#111827] border-slate-800"
+          }`}
+        >
+          <div
+            className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${
+              isLight ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-teal-500" />
             <span>Active Recovery Session ({activeHistory.length} turns)</span>
           </div>
 
@@ -263,21 +303,29 @@ export function DisruptionInput({
                 }`}
               >
                 {msg.role === "assistant" && (
-                  <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">
+                  <div className="w-6 h-6 rounded-full bg-teal-500/20 text-teal-400 border border-teal-500/40 flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">
                     AI
                   </div>
                 )}
                 <div
                   className={`p-2.5 rounded-lg max-w-[85%] leading-relaxed ${
                     msg.role === "user"
-                      ? "bg-indigo-600 text-white rounded-br-none shadow-xs font-medium"
-                      : "bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-2xs"
+                      ? "bg-teal-600 text-white rounded-br-none shadow-xs font-medium"
+                      : isLight
+                      ? "bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-2xs"
+                      : "bg-[#162035] text-slate-100 border border-slate-700 rounded-bl-none shadow-2xs"
                   }`}
                 >
                   {msg.content}
                 </div>
                 {msg.role === "user" && (
-                  <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5 ${
+                      isLight
+                        ? "bg-slate-200 text-slate-700"
+                        : "bg-slate-800 text-slate-300"
+                    }`}
+                  >
                     You
                   </div>
                 )}
@@ -290,12 +338,22 @@ export function DisruptionInput({
       {/* Out-of-Order Warning Banner if active */}
       {latestInterpretationResult?.status === "clarification_needed" &&
         latestInterpretationResult.isOutOfOrder && (
-          <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-300 text-xs text-amber-900 space-y-2">
-            <div className="flex items-center gap-2 font-bold text-amber-950">
-              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <div
+            className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+              isLight
+                ? "bg-amber-50 border-amber-300 text-amber-900"
+                : "bg-amber-950/40 border-amber-800 text-amber-200"
+            }`}
+          >
+            <div
+              className={`flex items-center gap-2 font-bold ${
+                isLight ? "text-amber-950" : "text-amber-300"
+              }`}
+            >
+              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
               <span>Out-of-Order Task Progress Detected</span>
             </div>
-            <p className="leading-relaxed text-amber-900">
+            <p className="leading-relaxed">
               PlanPatch’s automatic graph recovery solves causal and constraint disruptions (such as cancellations and budget changes) on remaining planned tasks, but cannot rewrite already-executed past steps without confirming current task states.
             </p>
           </div>
@@ -303,9 +361,19 @@ export function DisruptionInput({
 
       {/* Contextual Clickable Follow-Up Suggestions */}
       {followUpSuggestions && followUpSuggestions.length > 0 && (
-        <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-200/80 space-y-2">
-          <div className="text-[11px] font-semibold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+        <div
+          className={`p-3 rounded-xl border space-y-2 transition-colors ${
+            isLight
+              ? "bg-teal-50/60 border-teal-200/80"
+              : "bg-[#101b2f] border-teal-900/60"
+          }`}
+        >
+          <div
+            className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${
+              isLight ? "text-teal-900" : "text-teal-300"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-teal-500" />
             <span>Clickable Follow-Up Suggestions (Auto-Submit):</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -315,10 +383,14 @@ export function DisruptionInput({
                 type="button"
                 onClick={() => handleSuggestionClick(suggestion)}
                 disabled={isInterpreting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-indigo-900 border border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50 hover:shadow-xs transition disabled:opacity-50 text-left"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition disabled:opacity-50 text-left border ${
+                  isLight
+                    ? "bg-white text-teal-950 border-teal-200 hover:border-teal-400 hover:bg-teal-50 hover:shadow-xs"
+                    : "bg-[#15233c] text-teal-200 border-teal-800/80 hover:bg-[#1c3052] hover:border-teal-600"
+                }`}
               >
                 <span>{suggestion}</span>
-                <CornerDownLeft className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+                <CornerDownLeft className="w-3 h-3 text-teal-400 flex-shrink-0" />
               </button>
             ))}
           </div>
@@ -327,7 +399,11 @@ export function DisruptionInput({
 
       {/* Example Chips */}
       <div>
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+        <div
+          className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
+            isLight ? "text-slate-500" : "text-slate-400"
+          }`}
+        >
           {isDemoPlan
             ? "Canonical Scenarios & Example Prompts:"
             : "Example Disruption Prompts for Active Plan:"}
@@ -338,29 +414,55 @@ export function DisruptionInput({
               key={ex.scenarioId}
               className={`p-3 rounded-lg border text-left transition flex flex-col justify-between ${
                 activeScenarioId === ex.scenarioId
-                  ? "bg-indigo-50/70 border-indigo-300 ring-1 ring-indigo-200"
-                  : "bg-slate-50/80 border-slate-200/80 hover:bg-slate-50 hover:border-slate-300"
+                  ? isLight
+                    ? "bg-teal-50/70 border-teal-300 ring-1 ring-teal-200"
+                    : "bg-teal-950/70 border-teal-600 ring-1 ring-teal-500"
+                  : isLight
+                  ? "bg-slate-50/80 border-slate-200/80 hover:bg-slate-50 hover:border-slate-300"
+                  : "bg-[#131b2e] border-slate-800 hover:bg-[#18233b] hover:border-slate-700"
               }`}
             >
               <div>
-                <div className="text-xs font-bold text-slate-800">{ex.label}</div>
-                <div className="text-[11px] text-slate-500 mt-0.5 italic">
+                <div
+                  className={`text-xs font-bold ${
+                    isLight ? "text-slate-800" : "text-white"
+                  }`}
+                >
+                  {ex.label}
+                </div>
+                <div
+                  className={`text-[11px] mt-0.5 italic ${
+                    isLight ? "text-slate-500" : "text-slate-400"
+                  }`}
+                >
                   &ldquo;{ex.prompt}&rdquo;
                 </div>
               </div>
-              <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-200/50">
+              <div
+                className={`flex items-center gap-2 mt-3 pt-2 border-t transition-colors ${
+                  isLight ? "border-slate-200/50" : "border-slate-800"
+                }`}
+              >
                 <button
                   type="button"
                   onClick={() => handleSelectExample(ex)}
-                  className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
+                  className={`text-[11px] font-semibold hover:underline ${
+                    isLight
+                      ? "text-teal-700 hover:text-teal-900"
+                      : "text-teal-400 hover:text-teal-300"
+                  }`}
                 >
                   Use Prompt
                 </button>
-                <span className="text-slate-300 text-xs">•</span>
+                <span className={isLight ? "text-slate-300" : "text-slate-700"}>•</span>
                 <button
                   type="button"
                   onClick={() => onDirectScenarioSelect(ex.scenarioId, ex.fallbackDisruption)}
-                  className="text-[11px] font-medium text-slate-600 hover:text-slate-900"
+                  className={`text-[11px] font-medium transition-colors ${
+                    isLight
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
                   title="Run directly using structured disruption fixture (no API call required)"
                 >
                   Quick Load (Offline)
@@ -385,14 +487,22 @@ export function DisruptionInput({
             }}
             placeholder="e.g., The venue is unavailable, or reduce our overall budget to ₹16,000..."
             rows={3}
-            className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-inner"
+            className={`w-full rounded-lg border px-3.5 py-2.5 text-sm transition shadow-inner focus:outline-none focus:ring-1 focus:ring-teal-500 ${
+              isLight
+                ? "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-teal-500"
+                : "bg-[#131b2e] border-slate-700 text-white placeholder:text-slate-500 focus:border-teal-400"
+            }`}
           />
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="text-[11px] text-slate-500">
+          <div className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             {activeScenarioId ? (
-              <span className="text-indigo-700 font-medium flex items-center gap-1">
+              <span
+                className={`font-medium flex items-center gap-1 ${
+                  isLight ? "text-teal-700" : "text-teal-400"
+                }`}
+              >
                 <FileText className="w-3.5 h-3.5" />
                 Linked to scenario: {activeScenarioId}
               </span>
@@ -406,7 +516,11 @@ export function DisruptionInput({
               <button
                 type="button"
                 onClick={handleReset}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
+                className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                  isLight
+                    ? "text-slate-600 bg-slate-100 hover:bg-slate-200"
+                    : "text-slate-300 bg-slate-800 hover:bg-slate-700"
+                }`}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset</span>
@@ -416,7 +530,7 @@ export function DisruptionInput({
             <button
               type="submit"
               disabled={!prompt.trim() || isInterpreting}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
             >
               {isInterpreting ? (
                 <>

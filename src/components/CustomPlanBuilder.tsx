@@ -43,6 +43,7 @@ import {
   Check,
 } from "lucide-react";
 import "../lib/engine/event-planning-validator";
+import { useTheme } from "../lib/theme-context";
 
 interface CustomPlanBuilderProps {
   onLoadPlanToWorkspace: (plan: Plan) => void;
@@ -55,6 +56,9 @@ export function CustomPlanBuilder({
   onCancel,
   initialMode = "prompt",
 }: CustomPlanBuilderProps) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+
   // Mode state: guided prompt vs draft review vs full manual editor
   const [mode, setMode] = useState<"prompt" | "review_draft" | "manual">(initialMode);
 
@@ -456,26 +460,50 @@ export function CustomPlanBuilder({
     switch (provenance) {
       case "user_provided":
         return (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+          <span
+            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 ${
+              isLight
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-emerald-950/70 text-emerald-300 border-emerald-800/80"
+            }`}
+          >
             User Specified
           </span>
         );
       case "ai_estimate":
         return (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+          <span
+            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 ${
+              isLight
+                ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                : "bg-teal-950/70 text-teal-300 border-teal-800/80"
+            }`}
+          >
             AI Estimate
           </span>
         );
       case "derived":
         return (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
+          <span
+            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 ${
+              isLight
+                ? "bg-purple-50 text-purple-700 border-purple-200"
+                : "bg-purple-950/70 text-purple-300 border-purple-800/80"
+            }`}
+          >
             Derived
           </span>
         );
       case "missing":
       default:
         return (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+          <span
+            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 ${
+              isLight
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-amber-950/70 text-amber-300 border-amber-800/80"
+            }`}
+          >
             Unspecified
           </span>
         );
@@ -483,15 +511,35 @@ export function CustomPlanBuilder({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8 mb-8">
+    <div
+      className={`rounded-2xl p-6 sm:p-8 mb-8 border transition-colors ${
+        isLight
+          ? "bg-white border-slate-200 shadow-sm text-slate-900"
+          : "bg-[#0d1322] border-slate-800 shadow-2xl text-slate-100"
+      }`}
+    >
       {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-slate-200 gap-4">
+      <div
+        className={`flex flex-col md:flex-row md:items-center justify-between pb-5 border-b gap-4 ${
+          isLight ? "border-slate-200" : "border-slate-800"
+        }`}
+      >
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+            <h2
+              className={`text-2xl sm:text-3xl font-bold tracking-tight ${
+                isLight ? "text-slate-900" : "text-white"
+              }`}
+            >
               Create Your Own Plan
             </h2>
-            <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <span
+              className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold border ${
+                isLight
+                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                  : "bg-teal-950/80 text-teal-300 border-teal-800/80"
+              }`}
+            >
               {mode === "prompt"
                 ? "AI Guided"
                 : mode === "review_draft"
@@ -499,7 +547,7 @@ export function CustomPlanBuilder({
                 : "Manual Editor"}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1.5">
+          <p className={`text-xs sm:text-sm mt-1.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             Local workspace memory only &bull; Preserves canonical Campus Tech Fest demo plan intact.
           </p>
         </div>
@@ -509,7 +557,11 @@ export function CustomPlanBuilder({
           {mode !== "prompt" && (
             <button
               onClick={() => setMode("prompt")}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                isLight
+                  ? "text-slate-700 bg-slate-100 hover:bg-slate-200"
+                  : "text-slate-200 bg-slate-800 hover:bg-slate-700"
+              }`}
             >
               <ArrowLeft className="w-4 h-4" />
               Prompt Screen
@@ -519,7 +571,11 @@ export function CustomPlanBuilder({
           {mode !== "manual" && (
             <button
               onClick={() => setMode("manual")}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                isLight
+                  ? "text-slate-700 bg-slate-100 hover:bg-slate-200"
+                  : "text-slate-200 bg-slate-800 hover:bg-slate-700"
+              }`}
             >
               <Edit3 className="w-4 h-4" />
               Manual Editor
@@ -528,21 +584,33 @@ export function CustomPlanBuilder({
 
           <button
             onClick={handleLoadTemplate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+            className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold border rounded-lg transition-colors ${
+              isLight
+                ? "text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border-slate-200"
+                : "text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700 border-slate-700"
+            }`}
           >
             Software Template
           </button>
 
           <button
             onClick={handleLoadBlank}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+            className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold border rounded-lg transition-colors ${
+              isLight
+                ? "text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border-slate-200"
+                : "text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700 border-slate-700"
+            }`}
           >
             Blank Plan
           </button>
 
           <button
             onClick={() => setIsImporting(!isImporting)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold border rounded-lg transition-colors ${
+              isLight
+                ? "text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border-slate-200"
+                : "text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700 border-slate-700"
+            }`}
           >
             <Upload className="w-4 h-4" />
             Import JSON
@@ -550,7 +618,11 @@ export function CustomPlanBuilder({
 
           <button
             onClick={handleExportCopy}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold border rounded-lg transition-colors ${
+              isLight
+                ? "text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border-slate-200"
+                : "text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700 border-slate-700"
+            }`}
           >
             <Download className="w-4 h-4" />
             {copiedExport ? "Copied!" : "Export JSON"}
@@ -558,7 +630,11 @@ export function CustomPlanBuilder({
 
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+            className={`px-4 py-2 text-sm font-semibold transition-colors ${
+              isLight
+                ? "text-slate-500 hover:text-slate-800"
+                : "text-slate-400 hover:text-white"
+            }`}
           >
             Close
           </button>
@@ -567,19 +643,31 @@ export function CustomPlanBuilder({
 
       {/* JSON Import Drawer */}
       {isImporting && (
-        <div className="my-4 p-4 bg-slate-50 border border-slate-200 rounded-lg">
-          <label className="block text-xs font-medium text-slate-700 mb-1">
+        <div
+          className={`my-4 p-4 rounded-lg border ${
+            isLight ? "bg-slate-50 border-slate-200" : "bg-[#131b2e] border-slate-800"
+          }`}
+        >
+          <label
+            className={`block text-xs font-medium mb-1 ${
+              isLight ? "text-slate-700" : "text-slate-300"
+            }`}
+          >
             Paste Plan JSON:
           </label>
           <textarea
             value={importJsonText}
             onChange={(e) => setImportJsonText(e.target.value)}
             rows={5}
-            className="w-full text-xs font-mono p-2 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className={`w-full text-xs font-mono p-2 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+              isLight
+                ? "bg-white border-slate-300 text-slate-900"
+                : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+            }`}
             placeholder='{"schemaVersion": "1.0.0", "name": "My Custom Project", "tasks": [...]}'
           />
           {importError && (
-            <p className="text-xs text-rose-600 mt-1 flex items-center gap-1">
+            <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5" />
               {importError}
             </p>
@@ -587,7 +675,9 @@ export function CustomPlanBuilder({
           <div className="flex justify-end gap-2 mt-2">
             <button
               onClick={() => setIsImporting(false)}
-              className="px-3 py-1 text-xs text-slate-600 hover:text-slate-800"
+              className={`px-3 py-1 text-xs ${
+                isLight ? "text-slate-600 hover:text-slate-800" : "text-slate-400 hover:text-white"
+              }`}
             >
               Cancel
             </button>
@@ -604,11 +694,25 @@ export function CustomPlanBuilder({
       {/* VIEW 1: Prompt-First Guided Flow */}
       {mode === "prompt" && (
         <div className="mt-6 space-y-6">
-          <div className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
-            <label className="block text-lg sm:text-xl font-bold text-slate-900 mb-2 tracking-tight">
+          <div
+            className={`rounded-2xl p-6 sm:p-8 shadow-xs border ${
+              isLight
+                ? "bg-slate-50/80 border-slate-200/90 text-slate-900"
+                : "bg-[#131b2e] border-slate-800 text-slate-100"
+            }`}
+          >
+            <label
+              className={`block text-lg sm:text-xl font-bold mb-2 tracking-tight ${
+                isLight ? "text-slate-900" : "text-white"
+              }`}
+            >
               What are you planning?
             </label>
-            <p className="text-sm sm:text-base text-slate-600 mb-4 leading-relaxed">
+            <p
+              className={`text-sm sm:text-base mb-4 leading-relaxed ${
+                isLight ? "text-slate-600" : "text-slate-400"
+              }`}
+            >
               Describe your project goal in ordinary language. Gemini will propose a phased task breakdown, timeline, dependencies, and explicit provenance tracking.
             </p>
 
@@ -617,12 +721,20 @@ export function CustomPlanBuilder({
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="e.g. I want to build and deploy a full-stack web application in 7 days with a backend API, database, frontend, testing, and deployment. My budget is ₹50,000. Testing must finish before deployment."
               rows={4}
-              className="w-full text-base sm:text-lg p-4 sm:p-5 border border-slate-300 rounded-xl bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-400 min-h-[130px] leading-relaxed"
+              className={`w-full text-base sm:text-lg p-4 sm:p-5 border rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all min-h-[130px] leading-relaxed ${
+                isLight
+                  ? "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"
+                  : "bg-[#0a0f1d] border-slate-700 text-slate-100 placeholder:text-slate-500"
+              }`}
             />
 
             {/* Quick Example Chips */}
             <div className="mt-4 flex flex-wrap items-center gap-2.5">
-              <span className="text-xs sm:text-sm font-semibold text-slate-700">
+              <span
+                className={`text-xs sm:text-sm font-semibold ${
+                  isLight ? "text-slate-700" : "text-slate-300"
+                }`}
+              >
                 Try an example:
               </span>
               {samplePrompts.map((s, idx) => (
@@ -633,7 +745,11 @@ export function CustomPlanBuilder({
                     setPromptBudget(s.budget);
                     setPromptDeadline(s.deadline);
                   }}
-                  className="px-3.5 py-1.5 text-xs sm:text-sm font-medium bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-800 hover:text-blue-700 transition-colors shadow-2xs"
+                  className={`px-3.5 py-1.5 text-xs sm:text-sm font-medium border rounded-lg transition-colors shadow-2xs ${
+                    isLight
+                      ? "bg-white hover:bg-slate-100 border-slate-200 text-slate-800 hover:text-blue-700"
+                      : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200 hover:text-teal-300"
+                  }`}
                 >
                   {s.label}
                 </button>
@@ -641,10 +757,18 @@ export function CustomPlanBuilder({
             </div>
 
             {/* Optional Known Constraints */}
-            <div className="mt-6 pt-5 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div
+              className={`mt-6 pt-5 border-t grid grid-cols-1 sm:grid-cols-2 gap-5 ${
+                isLight ? "border-slate-200/80" : "border-slate-800"
+              }`}
+            >
               <div>
-                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                  Budget Limit (₹ INR) <span className="text-slate-500 font-normal">(optional)</span>
+                <label
+                  className={`block text-sm sm:text-base font-semibold mb-2 ${
+                    isLight ? "text-slate-800" : "text-slate-200"
+                  }`}
+                >
+                  Budget Limit (₹ INR) <span className={isLight ? "text-slate-500 font-normal" : "text-slate-400 font-normal"}>(optional)</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-2.5 text-sm sm:text-base text-slate-400 font-medium">₹</span>
@@ -653,14 +777,22 @@ export function CustomPlanBuilder({
                     value={promptBudget}
                     onChange={(e) => setPromptBudget(e.target.value)}
                     placeholder="e.g. 50000"
-                    className="w-full text-sm sm:text-base pl-8 pr-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                    className={`w-full text-sm sm:text-base pl-8 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium ${
+                      isLight
+                        ? "bg-white border-slate-300 text-slate-900"
+                        : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                    }`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm sm:text-base font-semibold text-slate-800 mb-2">
-                  Deadline (Hours) <span className="text-slate-500 font-normal">(optional)</span>
+                <label
+                  className={`block text-sm sm:text-base font-semibold mb-2 ${
+                    isLight ? "text-slate-800" : "text-slate-200"
+                  }`}
+                >
+                  Deadline (Hours) <span className={isLight ? "text-slate-500 font-normal" : "text-slate-400 font-normal"}>(optional)</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-3 text-slate-400">
@@ -671,7 +803,11 @@ export function CustomPlanBuilder({
                     value={promptDeadline}
                     onChange={(e) => setPromptDeadline(e.target.value)}
                     placeholder="e.g. 168 (7 days)"
-                    className="w-full text-sm sm:text-base pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                    className={`w-full text-sm sm:text-base pl-9 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium ${
+                      isLight
+                        ? "bg-white border-slate-300 text-slate-900"
+                        : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                    }`}
                   />
                 </div>
               </div>
@@ -679,7 +815,11 @@ export function CustomPlanBuilder({
 
             {/* Action Buttons */}
             <div className="mt-7 flex flex-wrap items-center justify-between gap-4">
-              <div className="text-xs sm:text-sm text-slate-600 flex items-center gap-2">
+              <div
+                className={`text-xs sm:text-sm flex items-center gap-2 ${
+                  isLight ? "text-slate-600" : "text-slate-400"
+                }`}
+              >
                 <Info className="w-4 h-4 text-slate-500 shrink-0" />
                 Never invents factual constraints; all estimates are explicitly tagged.
               </div>
@@ -708,25 +848,49 @@ export function CustomPlanBuilder({
 
           {/* Resilient Error Display */}
           {draftError && (
-            <div className="p-5 sm:p-6 bg-amber-50/95 border border-amber-200 rounded-2xl space-y-4 shadow-2xs">
+            <div
+              className={`p-5 sm:p-6 rounded-2xl space-y-4 shadow-2xs border ${
+                isLight
+                  ? "bg-amber-50/95 border-amber-200"
+                  : "bg-amber-950/30 border-amber-800/80"
+              }`}
+            >
               <div className="flex items-start gap-3.5">
-                <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+                <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="text-base sm:text-lg font-bold text-amber-900">
+                  <h4
+                    className={`text-base sm:text-lg font-bold ${
+                      isLight ? "text-amber-900" : "text-amber-200"
+                    }`}
+                  >
                     AI Plan Drafting Unavailable
                   </h4>
-                  <p className="text-sm text-amber-800 mt-1 leading-relaxed">
+                  <p
+                    className={`text-sm mt-1 leading-relaxed ${
+                      isLight ? "text-amber-800" : "text-amber-300"
+                    }`}
+                  >
                     {draftErrorDetails?.userFriendlyMessage || draftError}
                   </p>
                   {draftErrorDetails?.category === "AUTH_OR_CONFIG_MISSING" && (
-                    <p className="text-xs sm:text-sm text-amber-700 mt-2 bg-amber-100/70 p-3 rounded-lg">
+                    <p
+                      className={`text-xs sm:text-sm mt-2 p-3 rounded-lg ${
+                        isLight
+                          ? "text-amber-700 bg-amber-100/70"
+                          : "text-amber-300 bg-amber-900/50"
+                      }`}
+                    >
                       Tip: You can add <code>GEMINI_API_KEY</code> to <code>.env.local</code> on the server, or start immediately using our pre-built software template.
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-amber-200/80">
+              <div
+                className={`flex flex-wrap items-center gap-2.5 pt-3 border-t ${
+                  isLight ? "border-amber-200/80" : "border-amber-800/60"
+                }`}
+              >
                 {draftErrorDetails?.canRetry && (
                   <button
                     onClick={handleGenerateDraft}
@@ -756,21 +920,33 @@ export function CustomPlanBuilder({
                     setDraftErrorDetails(null);
                     setMode("review_draft");
                   }}
-                  className="px-4 py-2 text-xs sm:text-sm font-semibold text-teal-800 bg-teal-100 hover:bg-teal-200 border border-teal-300 rounded-lg transition-colors"
+                  className={`px-4 py-2 text-xs sm:text-sm font-semibold border rounded-lg transition-colors ${
+                    isLight
+                      ? "text-teal-800 bg-teal-100 hover:bg-teal-200 border-teal-300"
+                      : "text-teal-200 bg-teal-950/80 hover:bg-teal-900 border-teal-700"
+                  }`}
                 >
                   Generate Plan with Instant Fallback
                 </button>
 
                 <button
                   onClick={handleLoadTemplate}
-                  className="px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                  className={`px-4 py-2 text-xs sm:text-sm font-medium border rounded-lg transition-colors ${
+                    isLight
+                      ? "text-slate-700 bg-white hover:bg-slate-100 border-slate-200"
+                      : "text-slate-200 bg-slate-800 hover:bg-slate-700 border-slate-700"
+                  }`}
                 >
                   Start from Software Template Instead
                 </button>
 
                 <button
                   onClick={() => setMode("manual")}
-                  className="px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                  className={`px-4 py-2 text-xs sm:text-sm font-medium border rounded-lg transition-colors ${
+                    isLight
+                      ? "text-slate-700 bg-white hover:bg-slate-100 border-slate-200"
+                      : "text-slate-200 bg-slate-800 hover:bg-slate-700 border-slate-700"
+                  }`}
                 >
                   Build Manually
                 </button>
@@ -779,37 +955,77 @@ export function CustomPlanBuilder({
           )}
 
           {/* Fallback secondary paths */}
-          <div className="border border-slate-200 rounded-2xl p-5 sm:p-6 bg-white shadow-2xs">
-            <h4 className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
+          <div
+            className={`border rounded-2xl p-5 sm:p-6 shadow-2xs ${
+              isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-[#131b2e]"
+            }`}
+          >
+            <h4
+              className={`text-xs sm:text-sm font-bold uppercase tracking-wider mb-3 ${
+                isLight ? "text-slate-700" : "text-slate-300"
+              }`}
+            >
               Prefer starting manually?
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={handleLoadTemplate}
-                className="text-left p-4 sm:p-5 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 rounded-xl transition-all group"
+                className={`text-left p-4 sm:p-5 border rounded-xl transition-all group ${
+                  isLight
+                    ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50/30"
+                    : "border-slate-700 hover:border-teal-400 hover:bg-slate-800/60"
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-700">
+                  <span
+                    className={`text-sm sm:text-base font-bold transition-colors ${
+                      isLight
+                        ? "text-slate-900 group-hover:text-blue-700"
+                        : "text-white group-hover:text-teal-300"
+                    }`}
+                  >
                     Software Engineering Template
                   </span>
-                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-transform group-hover:translate-x-0.5" />
+                  <ArrowRight
+                    className={`w-4 h-4 transition-transform group-hover:translate-x-0.5 ${
+                      isLight
+                        ? "text-slate-400 group-hover:text-blue-600"
+                        : "text-slate-500 group-hover:text-teal-400"
+                    }`}
+                  />
                 </div>
-                <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+                <p
+                  className={`text-xs sm:text-sm mt-2 leading-relaxed ${
+                    isLight ? "text-slate-600" : "text-slate-400"
+                  }`}
+                >
                   6 pre-wired tasks (Arch, Backend, Frontend, QA, Security, Deploy) with realistic dependencies and ₹95,000 budget.
                 </p>
               </button>
 
               <button
                 onClick={handleLoadBlank}
-                className="text-left p-4 sm:p-5 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl transition-all group"
+                className={`text-left p-4 sm:p-5 border rounded-xl transition-all group ${
+                  isLight
+                    ? "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                    : "border-slate-700 hover:border-slate-600 hover:bg-slate-800/60"
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm sm:text-base font-bold text-slate-900">
+                  <span
+                    className={`text-sm sm:text-base font-bold ${
+                      isLight ? "text-slate-900" : "text-white"
+                    }`}
+                  >
                     Blank Custom Plan
                   </span>
                   <ArrowRight className="w-4 h-4 text-slate-400" />
                 </div>
-                <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+                <p
+                  className={`text-xs sm:text-sm mt-2 leading-relaxed ${
+                    isLight ? "text-slate-600" : "text-slate-400"
+                  }`}
+                >
                   Start with a clean slate and build tasks and dependency relationships step-by-step.
                 </p>
               </button>
@@ -822,7 +1038,11 @@ export function CustomPlanBuilder({
       {mode === "review_draft" && draftPlan && (
         <div className="mt-6 space-y-6">
           {/* Summary Card */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
+          <div
+            className={`rounded-xl p-5 border ${
+              isLight ? "bg-slate-50 border-slate-200" : "bg-[#131b2e] border-slate-800"
+            }`}
+          >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -834,30 +1054,64 @@ export function CustomPlanBuilder({
                       setDraftPlan(updated);
                       setPlan(convertDraftToPlan(updated));
                     }}
-                    className="text-lg font-bold text-slate-900 bg-transparent border-b border-dashed border-slate-300 hover:border-blue-400 focus:border-blue-600 focus:outline-none"
+                    className={`text-lg font-bold bg-transparent border-b border-dashed hover:border-blue-400 focus:border-blue-600 focus:outline-none ${
+                      isLight
+                        ? "text-slate-900 border-slate-300"
+                        : "text-white border-slate-700"
+                    }`}
                   />
-                  <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                  <span
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                      isLight
+                        ? "bg-purple-50 text-purple-700 border-purple-200"
+                        : "bg-purple-950/70 text-purple-300 border-purple-800/80"
+                    }`}
+                  >
                     AI Proposed Draft
                   </span>
                 </div>
-                <p className="text-xs text-slate-600 italic">
+                <p
+                  className={`text-xs italic ${
+                    isLight ? "text-slate-600" : "text-slate-400"
+                  }`}
+                >
                   &ldquo;{draftPlan.goal}&rdquo;
                 </p>
               </div>
 
               {/* Domain & Verification Tiering Badge */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Domain:</span>
-                <span className="px-2.5 py-1 rounded text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
+                <span className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  Domain:
+                </span>
+                <span
+                  className={`px-2.5 py-1 rounded text-xs font-medium border ${
+                    isLight
+                      ? "bg-slate-100 text-slate-800 border-slate-200"
+                      : "bg-slate-800 text-slate-200 border-slate-700"
+                  }`}
+                >
                   {draftPlan.domain}
                 </span>
                 {isDomainVerified ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${
+                      isLight
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-emerald-950/70 text-emerald-300 border-emerald-800/80"
+                    }`}
+                  >
                     <ShieldCheck className="w-3 h-3" />
                     Verified Domain
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${
+                      isLight
+                        ? "bg-amber-50 text-amber-800 border-amber-200"
+                        : "bg-amber-950/70 text-amber-300 border-amber-800/80"
+                    }`}
+                  >
                     <ShieldAlert className="w-3 h-3" />
                     Unverified Domain
                   </span>
@@ -866,66 +1120,130 @@ export function CustomPlanBuilder({
             </div>
 
             {/* Metrics & Provenance Row */}
-            <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-white p-3 rounded-lg border border-slate-200">
-                <span className="text-[11px] font-medium text-slate-500 uppercase">Tasks</span>
-                <div className="text-base font-bold text-slate-900 mt-0.5">
+            <div
+              className={`mt-4 pt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-3 ${
+                isLight ? "border-slate-200" : "border-slate-800"
+              }`}
+            >
+              <div
+                className={`p-3 rounded-lg border ${
+                  isLight ? "bg-white border-slate-200" : "bg-[#0d1322] border-slate-800"
+                }`}
+              >
+                <span
+                  className={`text-[11px] font-medium uppercase ${
+                    isLight ? "text-slate-500" : "text-slate-400"
+                  }`}
+                >
+                  Tasks
+                </span>
+                <div
+                  className={`text-base font-bold mt-0.5 ${
+                    isLight ? "text-slate-900" : "text-white"
+                  }`}
+                >
                   {draftPlan.tasks.length} Stages
                 </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
+                <div className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   {draftPlan.tasks.filter((t) => t.policy === "fixed").length} fixed requirements
                 </div>
               </div>
 
-              <div className="bg-white p-3 rounded-lg border border-slate-200">
+              <div
+                className={`p-3 rounded-lg border ${
+                  isLight ? "bg-white border-slate-200" : "bg-[#0d1322] border-slate-800"
+                }`}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-slate-500 uppercase">Budget</span>
+                  <span
+                    className={`text-[11px] font-medium uppercase ${
+                      isLight ? "text-slate-500" : "text-slate-400"
+                    }`}
+                  >
+                    Budget
+                  </span>
                   <ProvenanceBadge provenance={draftPlan.budgetProvenance} />
                 </div>
-                <div className="text-base font-bold text-slate-900 mt-0.5">
+                <div
+                  className={`text-base font-bold mt-0.5 ${
+                    isLight ? "text-slate-900" : "text-white"
+                  }`}
+                >
                   {draftPlan.budgetLimit !== null && draftPlan.budgetLimit !== undefined && draftPlan.budgetProvenance !== "missing"
                     ? `₹ ${draftPlan.budgetLimit.toLocaleString()}`
                     : "Unspecified"}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
+                <div className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   {draftPlan.budgetLimit !== null && draftPlan.budgetLimit !== undefined && draftPlan.budgetProvenance !== "missing"
                     ? "Max spending limit"
                     : "No budget cap set"}
                 </div>
               </div>
 
-              <div className="bg-white p-3 rounded-lg border border-slate-200">
+              <div
+                className={`p-3 rounded-lg border ${
+                  isLight ? "bg-white border-slate-200" : "bg-[#0d1322] border-slate-800"
+                }`}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-slate-500 uppercase">Deadline</span>
+                  <span
+                    className={`text-[11px] font-medium uppercase ${
+                      isLight ? "text-slate-500" : "text-slate-400"
+                    }`}
+                  >
+                    Deadline
+                  </span>
                   <ProvenanceBadge provenance={draftPlan.deadlineProvenance} />
                 </div>
-                <div className="text-base font-bold text-slate-900 mt-0.5">
+                <div
+                  className={`text-base font-bold mt-0.5 ${
+                    isLight ? "text-slate-900" : "text-white"
+                  }`}
+                >
                   {draftPlan.deadlineHours !== null && draftPlan.deadlineHours !== undefined && draftPlan.deadlineProvenance !== "missing"
                     ? `${draftPlan.deadlineHours} Hours`
                     : "Unspecified"}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
+                <div className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   {draftPlan.deadlineHours !== null && draftPlan.deadlineHours !== undefined && draftPlan.deadlineProvenance !== "missing"
                     ? "Target project finish"
                     : "No deadline constraint"}
                 </div>
               </div>
 
-              <div className="bg-white p-3 rounded-lg border border-slate-200">
-                <span className="text-[11px] font-medium text-slate-500 uppercase">Topological Slack</span>
-                <div className="text-base font-bold text-slate-900 mt-0.5">
+              <div
+                className={`p-3 rounded-lg border ${
+                  isLight ? "bg-white border-slate-200" : "bg-[#0d1322] border-slate-800"
+                }`}
+              >
+                <span
+                  className={`text-[11px] font-medium uppercase ${
+                    isLight ? "text-slate-500" : "text-slate-400"
+                  }`}
+                >
+                  Topological Slack
+                </span>
+                <div
+                  className={`text-base font-bold mt-0.5 ${
+                    isLight ? "text-slate-900" : "text-white"
+                  }`}
+                >
                   {validationResult?.schedule?.projectSlack !== undefined && validationResult?.schedule?.projectSlack !== null
                     ? `${validationResult.schedule.projectSlack}h`
                     : "—"}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
+                <div className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   {validationResult?.schedule?.projectSlack !== null &&
                   validationResult?.schedule?.projectSlack !== undefined ? (
                     <span
                       className={
                         validationResult.schedule.projectSlack >= 0
-                          ? "text-emerald-700 font-medium"
-                          : "text-rose-700 font-medium"
+                          ? isLight
+                            ? "text-emerald-700 font-medium"
+                            : "text-emerald-400 font-medium"
+                          : isLight
+                          ? "text-rose-700 font-medium"
+                          : "text-rose-400 font-medium"
                       }
                     >
                       {validationResult.schedule.projectSlack >= 0
@@ -941,8 +1259,14 @@ export function CustomPlanBuilder({
 
             {/* Unverified Domain Notice */}
             {!isDomainVerified && (
-              <div className="mt-3 p-2.5 bg-amber-50/80 border border-amber-200 rounded-md text-[11px] text-amber-800 flex items-start gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
+              <div
+                className={`mt-3 p-2.5 rounded-md text-[11px] flex items-start gap-2 border ${
+                  isLight
+                    ? "bg-amber-50/80 border-amber-200 text-amber-800"
+                    : "bg-amber-950/40 border-amber-800/70 text-amber-300"
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
                 <span>
                   <strong>Unverified Domain Notice:</strong> Structural graph cycles and schedule mathematics are strictly checked, but domain-specific business rules for &ldquo;{draftPlan.domain}&rdquo; require manual operator verification.
                 </span>
@@ -954,12 +1278,22 @@ export function CustomPlanBuilder({
           {(draftPlan.assumptions.length > 0 || draftPlan.missingInformation.length > 0) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {draftPlan.assumptions.length > 0 && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                  <h4 className="text-xs font-semibold text-slate-800 flex items-center gap-1.5 mb-2">
-                    <Info className="w-3.5 h-3.5 text-blue-600" />
+                <div
+                  className={`p-3 rounded-lg border ${
+                    isLight
+                      ? "bg-slate-50 border-slate-200 text-slate-600"
+                      : "bg-[#131b2e] border-slate-800 text-slate-300"
+                  }`}
+                >
+                  <h4
+                    className={`text-xs font-semibold flex items-center gap-1.5 mb-2 ${
+                      isLight ? "text-slate-800" : "text-slate-100"
+                    }`}
+                  >
+                    <Info className={`w-3.5 h-3.5 ${isLight ? "text-blue-600" : "text-teal-400"}`} />
                     AI Assumptions Made:
                   </h4>
-                  <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                  <ul className="text-xs space-y-1 list-disc list-inside">
                     {draftPlan.assumptions.map((a, i) => (
                       <li key={i}>{a}</li>
                     ))}
@@ -968,12 +1302,22 @@ export function CustomPlanBuilder({
               )}
 
               {draftPlan.missingInformation.length > 0 && (
-                <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-lg">
-                  <h4 className="text-xs font-semibold text-amber-900 flex items-center gap-1.5 mb-2">
-                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                <div
+                  className={`p-3 rounded-lg border ${
+                    isLight
+                      ? "bg-amber-50/60 border-amber-200 text-amber-800"
+                      : "bg-amber-950/30 border-amber-800/60 text-amber-300"
+                  }`}
+                >
+                  <h4
+                    className={`text-xs font-semibold flex items-center gap-1.5 mb-2 ${
+                      isLight ? "text-amber-900" : "text-amber-200"
+                    }`}
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
                     Actionable Missing Information:
                   </h4>
-                  <ul className="text-xs text-amber-800 space-y-1 list-disc list-inside">
+                  <ul className="text-xs space-y-1 list-disc list-inside">
                     {draftPlan.missingInformation.map((m, i) => (
                       <li key={i}>{m}</li>
                     ))}
@@ -987,21 +1331,35 @@ export function CustomPlanBuilder({
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-900">
+                <h3
+                  className={`text-sm font-semibold ${
+                    isLight ? "text-slate-900" : "text-white"
+                  }`}
+                >
                   Phased Project Tasks ({draftPlan.tasks.length})
                 </h3>
-                <span className="text-xs text-slate-400">&bull; Click any task to expand details</span>
+                <span className={`text-xs ${isLight ? "text-slate-400" : "text-slate-500"}`}>
+                  &bull; Click any task to expand details
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={expandedTaskIds.size === draftPlan.tasks.length ? collapseAllTasks : expandAllTasks}
-                  className="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-md transition-colors"
+                  className={`px-2.5 py-1 text-xs font-medium border rounded-md transition-colors ${
+                    isLight
+                      ? "text-slate-600 bg-slate-100 hover:bg-slate-200 border-slate-200"
+                      : "text-slate-300 bg-slate-800 hover:bg-slate-700 border-slate-700"
+                  }`}
                 >
                   {expandedTaskIds.size === draftPlan.tasks.length ? "Collapse All" : "Expand All"}
                 </button>
                 <button
                   onClick={handleAddDraftTask}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium border rounded-md transition-colors ${
+                    isLight
+                      ? "text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200"
+                      : "text-teal-300 bg-teal-950/70 hover:bg-teal-900 border-teal-800/80"
+                  }`}
                 >
                   <Plus className="w-3 h-3" />
                   Add Task
@@ -1024,18 +1382,36 @@ export function CustomPlanBuilder({
                     <div
                       key={task.id}
                       onClick={() => toggleTaskExpand(task.id)}
-                      className="p-3 bg-white border border-slate-200 hover:border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                      className={`p-3 rounded-lg shadow-2xs transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 border ${
+                        isLight
+                          ? "bg-white border-slate-200 hover:border-slate-300"
+                          : "bg-[#131b2e] border-slate-800 hover:border-slate-700"
+                      }`}
                     >
                       <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                        <span className="px-2 py-0.5 bg-slate-100 font-mono text-xs font-bold text-slate-800 rounded shrink-0">
+                        <span
+                          className={`px-2 py-0.5 font-mono text-xs font-bold rounded shrink-0 ${
+                            isLight
+                              ? "bg-slate-100 text-slate-800"
+                              : "bg-slate-800 text-teal-300"
+                          }`}
+                        >
                           {task.id}
                         </span>
-                        <span className="text-xs font-semibold text-slate-900 truncate">
+                        <span
+                          className={`text-xs font-semibold truncate ${
+                            isLight ? "text-slate-900" : "text-white"
+                          }`}
+                        >
                           {task.title}
                         </span>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                      <div
+                        className={`flex flex-wrap items-center gap-2 text-xs ${
+                          isLight ? "text-slate-600" : "text-slate-300"
+                        }`}
+                      >
                         <div className="flex items-center gap-1">
                           <span>
                             {task.cost !== null && task.cost !== undefined
@@ -1054,19 +1430,31 @@ export function CustomPlanBuilder({
                           <ProvenanceBadge provenance={task.durationProvenance} />
                         </div>
 
-                        <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                            isLight
+                              ? "bg-slate-100 text-slate-700"
+                              : "bg-slate-800 text-slate-300"
+                          }`}
+                        >
                           {task.policy}
                         </span>
 
-                        <span className="text-slate-400">P{task.priority}</span>
+                        <span className={isLight ? "text-slate-400" : "text-slate-500"}>
+                          P{task.priority}
+                        </span>
 
-                        <span className="text-[11px] text-slate-500 font-mono">
+                        <span
+                          className={`text-[11px] font-mono ${
+                            isLight ? "text-slate-500" : "text-slate-400"
+                          }`}
+                        >
                           {task.predecessorIds.length > 0
                             ? `Deps: ${task.predecessorIds.join(", ")}`
                             : "No deps"}
                         </span>
 
-                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+                        <ChevronDown className={`w-4 h-4 shrink-0 ml-1 ${isLight ? "text-slate-400" : "text-slate-500"}`} />
                       </div>
                     </div>
                   );
@@ -1075,11 +1463,21 @@ export function CustomPlanBuilder({
                 return (
                   <div
                     key={task.id}
-                    className="p-4 bg-white border-2 border-blue-200 rounded-lg shadow-sm transition-all space-y-4"
+                    className={`p-4 rounded-lg shadow-sm transition-all space-y-4 border-2 ${
+                      isLight
+                        ? "bg-white border-blue-200"
+                        : "bg-[#131b2e] border-teal-500/50"
+                    }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
-                        <span className="px-2 py-0.5 bg-blue-100 font-mono text-xs font-bold text-blue-900 rounded">
+                        <span
+                          className={`px-2 py-0.5 font-mono text-xs font-bold rounded ${
+                            isLight
+                              ? "bg-blue-100 text-blue-900"
+                              : "bg-teal-950 text-teal-300 border border-teal-800"
+                          }`}
+                        >
                           {task.id}
                         </span>
                         <input
@@ -1088,7 +1486,11 @@ export function CustomPlanBuilder({
                           onChange={(e) =>
                             handleUpdateDraftTask(idx, { title: e.target.value })
                           }
-                          className="text-sm font-semibold text-slate-900 flex-1 border-b border-slate-300 focus:border-blue-500 focus:outline-none"
+                          className={`text-sm font-semibold flex-1 border-b focus:outline-none bg-transparent ${
+                            isLight
+                              ? "text-slate-900 border-slate-300 focus:border-blue-500"
+                              : "text-white border-slate-700 focus:border-teal-400"
+                          }`}
                         />
                       </div>
 
@@ -1102,7 +1504,11 @@ export function CustomPlanBuilder({
                                 policyProvenance: "user_provided",
                               })
                             }
-                            className="text-xs py-1 px-2 border border-slate-200 rounded bg-white text-slate-700"
+                            className={`text-xs py-1 px-2 border rounded ${
+                              isLight
+                                ? "border-slate-200 bg-white text-slate-700"
+                                : "border-slate-700 bg-[#0a0f1d] text-slate-200"
+                            }`}
                           >
                             <option value="fixed">Fixed (Core)</option>
                             <option value="flexible">Flexible</option>
@@ -1131,9 +1537,17 @@ export function CustomPlanBuilder({
                     </div>
 
                     {/* Task details: Cost, Duration, Priority */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100 text-xs">
+                    <div
+                      className={`grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t text-xs ${
+                        isLight ? "border-slate-100" : "border-slate-800"
+                      }`}
+                    >
                       <div>
-                        <div className="flex items-center justify-between text-slate-500 mb-1">
+                        <div
+                          className={`flex items-center justify-between mb-1 ${
+                            isLight ? "text-slate-500" : "text-slate-400"
+                          }`}
+                        >
                           <span>Cost (₹)</span>
                           <ProvenanceBadge provenance={task.costProvenance} />
                         </div>
@@ -1148,12 +1562,20 @@ export function CustomPlanBuilder({
                               costProvenance: val !== null ? "user_provided" : "missing",
                             });
                           }}
-                          className="w-full p-1.5 border border-slate-200 rounded text-xs font-medium"
+                          className={`w-full p-1.5 border rounded text-xs font-medium ${
+                            isLight
+                              ? "border-slate-200 bg-white text-slate-900"
+                              : "border-slate-700 bg-[#0a0f1d] text-slate-100"
+                          }`}
                         />
                       </div>
 
                       <div>
-                        <div className="flex items-center justify-between text-slate-500 mb-1">
+                        <div
+                          className={`flex items-center justify-between mb-1 ${
+                            isLight ? "text-slate-500" : "text-slate-400"
+                          }`}
+                        >
                           <span>Duration (Hours)</span>
                           <ProvenanceBadge provenance={task.durationProvenance} />
                         </div>
@@ -1168,12 +1590,20 @@ export function CustomPlanBuilder({
                               durationProvenance: val !== null ? "user_provided" : "missing",
                             });
                           }}
-                          className="w-full p-1.5 border border-slate-200 rounded text-xs font-medium"
+                          className={`w-full p-1.5 border rounded text-xs font-medium ${
+                            isLight
+                              ? "border-slate-200 bg-white text-slate-900"
+                              : "border-slate-700 bg-[#0a0f1d] text-slate-100"
+                          }`}
                         />
                       </div>
 
                       <div>
-                        <div className="flex items-center justify-between text-slate-500 mb-1">
+                        <div
+                          className={`flex items-center justify-between mb-1 ${
+                            isLight ? "text-slate-500" : "text-slate-400"
+                          }`}
+                        >
                           <span>Priority (1-5)</span>
                           <ProvenanceBadge provenance={task.priorityProvenance} />
                         </div>
@@ -1185,7 +1615,11 @@ export function CustomPlanBuilder({
                               priorityProvenance: "user_provided",
                             })
                           }
-                          className="w-full p-1.5 border border-slate-200 rounded text-xs font-medium bg-white"
+                          className={`w-full p-1.5 border rounded text-xs font-medium ${
+                            isLight
+                              ? "border-slate-200 bg-white text-slate-900"
+                              : "border-slate-700 bg-[#0a0f1d] text-slate-100"
+                          }`}
                         >
                           <option value={1}>1 (Lowest)</option>
                           <option value={2}>2 (Low)</option>
@@ -1197,14 +1631,26 @@ export function CustomPlanBuilder({
                     </div>
 
                     {/* Predecessors vs Successors Direction View */}
-                    <div className="pt-3 border-t border-slate-100 space-y-3">
+                    <div
+                      className={`pt-3 border-t space-y-3 ${
+                        isLight ? "border-slate-100" : "border-slate-800"
+                      }`}
+                    >
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <div>
-                            <span className="text-xs font-semibold text-slate-800">
+                            <span
+                              className={`text-xs font-semibold ${
+                                isLight ? "text-slate-800" : "text-slate-200"
+                              }`}
+                            >
                               This task depends on (Predecessors):
                             </span>
-                            <span className="text-[11px] text-slate-500 block">
+                            <span
+                              className={`text-[11px] block ${
+                                isLight ? "text-slate-500" : "text-slate-400"
+                              }`}
+                            >
                               Must be completed before {task.id} ({task.title}) can start.
                             </span>
                           </div>
@@ -1221,8 +1667,12 @@ export function CustomPlanBuilder({
                                   onClick={() => handleToggleDraftPredecessor(task.id, other.id)}
                                   className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${
                                     isSelected
-                                      ? "bg-blue-600 text-white border-blue-600"
-                                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                                      ? isLight
+                                        ? "bg-blue-600 text-white border-blue-600"
+                                        : "bg-teal-500 text-slate-950 font-bold border-teal-500"
+                                      : isLight
+                                      ? "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                                      : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
                                   }`}
                                 >
                                   {isSelected ? "✓ " : ""}{other.id}: {other.title}
@@ -1237,10 +1687,18 @@ export function CustomPlanBuilder({
 
                       <div>
                         <div>
-                          <span className="text-xs font-semibold text-slate-800">
+                          <span
+                            className={`text-xs font-semibold ${
+                              isLight ? "text-slate-800" : "text-slate-200"
+                            }`}
+                          >
                             Tasks that depend on this task (Successors):
                           </span>
-                          <span className="text-[11px] text-slate-500 block">
+                          <span
+                            className={`text-[11px] block ${
+                              isLight ? "text-slate-500" : "text-slate-400"
+                            }`}
+                          >
                             Cannot start until {task.id} ({task.title}) is completed.
                           </span>
                         </div>
@@ -1249,7 +1707,11 @@ export function CustomPlanBuilder({
                             successors.map((succ) => (
                               <span
                                 key={succ.id}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200"
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
+                                  isLight
+                                    ? "bg-slate-100 text-slate-700 border-slate-200"
+                                    : "bg-slate-800 text-slate-300 border-slate-700"
+                                }`}
                               >
                                 {succ.id}: {succ.title}
                               </span>
@@ -1269,15 +1731,23 @@ export function CustomPlanBuilder({
           </div>
 
           {/* Validation & Open Actions */}
-          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div
+            className={`pt-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+              isLight ? "border-slate-200" : "border-slate-800"
+            }`}
+          >
             <div>
               {validationResult?.isValid ? (
-                <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <div
+                  className={`flex items-center gap-1.5 text-xs font-medium ${
+                    isLight ? "text-emerald-700" : "text-emerald-400"
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                   Graph and constraints verified &bull; Ready for recovery workspace
                 </div>
               ) : (
-                <div className="text-xs text-rose-600">
+                <div className="text-xs text-rose-500">
                   {validationResult?.schemaErrors[0] ||
                     validationResult?.graphErrors[0] ||
                     "Please resolve validation issues."}
@@ -1288,14 +1758,20 @@ export function CustomPlanBuilder({
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMode("prompt")}
-                className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800"
+                className={`px-4 py-2 text-xs font-medium transition-colors ${
+                  isLight ? "text-slate-600 hover:text-slate-800" : "text-slate-400 hover:text-white"
+                }`}
               >
                 Back to Prompt
               </button>
 
               <button
                 onClick={() => setMode("manual")}
-                className="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors ${
+                  isLight
+                    ? "text-slate-700 bg-slate-100 hover:bg-slate-200"
+                    : "text-slate-200 bg-slate-800 hover:bg-slate-700"
+                }`}
               >
                 Switch to Full Manual Mode
               </button>
@@ -1303,7 +1779,11 @@ export function CustomPlanBuilder({
               <button
                 onClick={() => handleConfirmDraftAndOpen(false)}
                 disabled={!validationResult?.isValid}
-                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm transition-all"
+                className={`inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm transition-all ${
+                  isLight
+                    ? "text-white bg-blue-600 hover:bg-blue-700"
+                    : "text-slate-950 bg-teal-400 hover:bg-teal-300 font-bold"
+                }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Confirm &amp; Open in Recovery Workspace
@@ -1313,21 +1793,37 @@ export function CustomPlanBuilder({
 
           {/* Missing Values Confirmation Modal */}
           {showMissingValuesModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-              <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+              <div
+                className={`rounded-xl max-w-lg w-full p-6 shadow-2xl border space-y-4 ${
+                  isLight
+                    ? "bg-white border-slate-200 text-slate-900"
+                    : "bg-[#0d1322] border-slate-800 text-slate-100"
+                }`}
+              >
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">
+                    <h3
+                      className={`text-base font-bold ${
+                        isLight ? "text-slate-900" : "text-white"
+                      }`}
+                    >
                       Confirm Plan Constraints &amp; Unspecified Values
                     </h3>
-                    <p className="text-xs text-slate-600 mt-1">
+                    <p className={`text-xs mt-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                       PlanPatch maintains honest provenance. Please confirm how missing values should be handled:
                     </p>
                   </div>
                 </div>
 
-                <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-lg text-xs text-amber-900 space-y-2">
+                <div
+                  className={`p-3 rounded-lg text-xs space-y-2 border ${
+                    isLight
+                      ? "bg-amber-50/70 border-amber-200/80 text-amber-900"
+                      : "bg-amber-950/40 border-amber-800/80 text-amber-200"
+                  }`}
+                >
                   {(draftPlan.budgetProvenance === "missing" ||
                     draftPlan.budgetLimit === null ||
                     draftPlan.budgetLimit === undefined) && (
@@ -1356,10 +1852,16 @@ export function CustomPlanBuilder({
                   )}
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <div
+                  className={`flex items-center justify-end gap-3 pt-3 border-t ${
+                    isLight ? "border-slate-100" : "border-slate-800"
+                  }`}
+                >
                   <button
                     onClick={() => setShowMissingValuesModal(false)}
-                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800"
+                    className={`px-4 py-2 text-xs font-medium transition-colors ${
+                      isLight ? "text-slate-600 hover:text-slate-800" : "text-slate-400 hover:text-white"
+                    }`}
                   >
                     Cancel &amp; Edit Values
                   </button>
@@ -1368,7 +1870,11 @@ export function CustomPlanBuilder({
                       setShowMissingValuesModal(false);
                       handleConfirmDraftAndOpen(true);
                     }}
-                    className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+                    className={`px-4 py-2 text-xs font-semibold rounded-lg shadow-sm transition-colors ${
+                      isLight
+                        ? "text-white bg-blue-600 hover:bg-blue-700"
+                        : "text-slate-950 bg-teal-400 hover:bg-teal-300 font-bold"
+                    }`}
                   >
                     Confirm &amp; Open Workspace
                   </button>
@@ -1383,9 +1889,17 @@ export function CustomPlanBuilder({
       {mode === "manual" && (
         <div className="mt-6 space-y-6">
           {/* Plan Settings Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl border ${
+              isLight ? "bg-slate-50 border-slate-200" : "bg-[#131b2e] border-slate-800"
+            }`}
+          >
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label
+                className={`block text-xs font-medium mb-1 ${
+                  isLight ? "text-slate-700" : "text-slate-300"
+                }`}
+              >
                 Plan Name
               </label>
               <input
@@ -1395,12 +1909,20 @@ export function CustomPlanBuilder({
                   setPlan({ ...plan, name: e.target.value });
                   setValidationResult(null);
                 }}
-                className="w-full text-xs p-2 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`w-full text-xs p-2 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  isLight
+                    ? "bg-white border-slate-300 text-slate-900"
+                    : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                }`}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label
+                className={`block text-xs font-medium mb-1 ${
+                  isLight ? "text-slate-700" : "text-slate-300"
+                }`}
+              >
                 Domain / Category
               </label>
               <input
@@ -1410,12 +1932,20 @@ export function CustomPlanBuilder({
                   setPlan({ ...plan, domain: e.target.value });
                   setValidationResult(null);
                 }}
-                className="w-full text-xs p-2 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`w-full text-xs p-2 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  isLight
+                    ? "bg-white border-slate-300 text-slate-900"
+                    : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                }`}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label
+                className={`block text-xs font-medium mb-1 ${
+                  isLight ? "text-slate-700" : "text-slate-300"
+                }`}
+              >
                 Budget Limit (₹ INR)
               </label>
               <input
@@ -1429,12 +1959,20 @@ export function CustomPlanBuilder({
                   });
                   setValidationResult(null);
                 }}
-                className="w-full text-xs p-2 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`w-full text-xs p-2 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  isLight
+                    ? "bg-white border-slate-300 text-slate-900"
+                    : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                }`}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label
+                className={`block text-xs font-medium mb-1 ${
+                  isLight ? "text-slate-700" : "text-slate-300"
+                }`}
+              >
                 Deadline (Hours)
               </label>
               <input
@@ -1448,7 +1986,11 @@ export function CustomPlanBuilder({
                   });
                   setValidationResult(null);
                 }}
-                className="w-full text-xs p-2 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`w-full text-xs p-2 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  isLight
+                    ? "bg-white border-slate-300 text-slate-900"
+                    : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                }`}
               />
             </div>
           </div>
@@ -1456,12 +1998,20 @@ export function CustomPlanBuilder({
           {/* Tasks Table */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-900">
+              <h3
+                className={`text-sm font-semibold ${
+                  isLight ? "text-slate-900" : "text-white"
+                }`}
+              >
                 Tasks ({plan.tasks.length})
               </h3>
               <button
                 onClick={handleAddManualTask}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+                className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border rounded-lg transition-colors ${
+                  isLight
+                    ? "text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200"
+                    : "text-teal-300 bg-teal-950/70 hover:bg-teal-900 border-teal-800/80"
+                }`}
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Task
@@ -1477,11 +2027,19 @@ export function CustomPlanBuilder({
                 return (
                   <div
                     key={task.id}
-                    className="p-4 bg-white border border-slate-200 rounded-lg shadow-2xs space-y-3"
+                    className={`p-4 rounded-lg shadow-2xs space-y-3 border ${
+                      isLight
+                        ? "bg-white border-slate-200"
+                        : "bg-[#131b2e] border-slate-800 text-slate-100"
+                    }`}
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] text-slate-400 uppercase font-semibold">
+                        <label
+                          className={`text-[10px] uppercase font-semibold ${
+                            isLight ? "text-slate-400" : "text-slate-500"
+                          }`}
+                        >
                           ID
                         </label>
                         <input
@@ -1490,12 +2048,20 @@ export function CustomPlanBuilder({
                           onChange={(e) =>
                             handleUpdateManualTask(idx, { id: e.target.value })
                           }
-                          className="w-full text-xs p-1.5 border border-slate-300 rounded font-mono font-semibold"
+                          className={`w-full text-xs p-1.5 border rounded font-mono font-semibold ${
+                            isLight
+                              ? "bg-white border-slate-300 text-slate-900"
+                              : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                          }`}
                         />
                       </div>
 
                       <div className="sm:col-span-4">
-                        <label className="text-[10px] text-slate-400 uppercase font-semibold">
+                        <label
+                          className={`text-[10px] uppercase font-semibold ${
+                            isLight ? "text-slate-400" : "text-slate-500"
+                          }`}
+                        >
                           Title
                         </label>
                         <input
@@ -1504,12 +2070,20 @@ export function CustomPlanBuilder({
                           onChange={(e) =>
                             handleUpdateManualTask(idx, { title: e.target.value })
                           }
-                          className="w-full text-xs p-1.5 border border-slate-300 rounded font-medium"
+                          className={`w-full text-xs p-1.5 border rounded font-medium ${
+                            isLight
+                              ? "bg-white border-slate-300 text-slate-900"
+                              : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                          }`}
                         />
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] text-slate-400 uppercase font-semibold">
+                        <label
+                          className={`text-[10px] uppercase font-semibold ${
+                            isLight ? "text-slate-400" : "text-slate-500"
+                          }`}
+                        >
                           Cost (₹)
                         </label>
                         <input
@@ -1520,12 +2094,20 @@ export function CustomPlanBuilder({
                               cost: Math.max(0, parseFloat(e.target.value) || 0),
                             })
                           }
-                          className="w-full text-xs p-1.5 border border-slate-300 rounded"
+                          className={`w-full text-xs p-1.5 border rounded ${
+                            isLight
+                              ? "bg-white border-slate-300 text-slate-900"
+                              : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                          }`}
                         />
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] text-slate-400 uppercase font-semibold">
+                        <label
+                          className={`text-[10px] uppercase font-semibold ${
+                            isLight ? "text-slate-400" : "text-slate-500"
+                          }`}
+                        >
                           Hours
                         </label>
                         <input
@@ -1539,12 +2121,20 @@ export function CustomPlanBuilder({
                               ),
                             })
                           }
-                          className="w-full text-xs p-1.5 border border-slate-300 rounded"
+                          className={`w-full text-xs p-1.5 border rounded ${
+                            isLight
+                              ? "bg-white border-slate-300 text-slate-900"
+                              : "bg-[#0a0f1d] border-slate-700 text-slate-100"
+                          }`}
                         />
                       </div>
 
                       <div className="sm:col-span-1">
-                        <label className="text-[10px] text-slate-400 uppercase font-semibold">
+                        <label
+                          className={`text-[10px] uppercase font-semibold ${
+                            isLight ? "text-slate-400" : "text-slate-500"
+                          }`}
+                        >
                           Policy
                         </label>
                         <select
@@ -1554,7 +2144,11 @@ export function CustomPlanBuilder({
                               policy: e.target.value as TaskPolicy,
                             })
                           }
-                          className="w-full text-xs p-1.5 border border-slate-300 rounded bg-white"
+                          className={`w-full text-xs p-1.5 border rounded ${
+                            isLight
+                              ? "border-slate-300 bg-white text-slate-900"
+                              : "border-slate-700 bg-[#0a0f1d] text-slate-100"
+                          }`}
                         >
                           <option value="fixed">Fixed</option>
                           <option value="flexible">Flexible</option>
@@ -1566,7 +2160,7 @@ export function CustomPlanBuilder({
                         <button
                           onClick={() => handleRemoveManualTask(task.id)}
                           disabled={plan.tasks.length <= 1}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           title="Delete Task"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1575,8 +2169,16 @@ export function CustomPlanBuilder({
                     </div>
 
                     {/* Predecessors selection */}
-                    <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] text-slate-500 font-medium mr-1">
+                    <div
+                      className={`pt-2 border-t flex flex-wrap items-center gap-1.5 ${
+                        isLight ? "border-slate-100" : "border-slate-800"
+                      }`}
+                    >
+                      <span
+                        className={`text-[11px] font-medium mr-1 ${
+                          isLight ? "text-slate-500" : "text-slate-400"
+                        }`}
+                      >
                         Predecessors:
                       </span>
                       {plan.tasks
@@ -1591,8 +2193,12 @@ export function CustomPlanBuilder({
                               }
                               className={`px-2 py-0.5 rounded text-[11px] font-medium border transition-colors ${
                                 isPred
-                                  ? "bg-blue-600 text-white border-blue-600"
-                                  : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                                  ? isLight
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-teal-500 text-slate-950 font-bold border-teal-500"
+                                  : isLight
+                                  ? "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                                  : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
                               }`}
                             >
                               {other.id}
@@ -1607,12 +2213,20 @@ export function CustomPlanBuilder({
           </div>
 
           {/* Validation Feedback & Final Actions */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+          <div
+            className={`p-4 rounded-xl space-y-3 border ${
+              isLight ? "bg-slate-50 border-slate-200" : "bg-[#131b2e] border-slate-800"
+            }`}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleValidateManual}
-                  className="px-4 py-2 text-xs font-semibold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-2xs transition-colors"
+                  className={`px-4 py-2 text-xs font-semibold border rounded-lg shadow-2xs transition-colors ${
+                    isLight
+                      ? "text-slate-800 bg-white hover:bg-slate-100 border-slate-300"
+                      : "text-slate-200 bg-slate-800 hover:bg-slate-700 border-slate-700"
+                  }`}
                 >
                   Validate &amp; Calculate Baseline
                 </button>
@@ -1628,7 +2242,11 @@ export function CustomPlanBuilder({
                     }
                   }}
                   disabled={!validationResult?.isValid}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm transition-all"
+                  className={`inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm transition-all ${
+                    isLight
+                      ? "text-white bg-blue-600 hover:bg-blue-700"
+                      : "text-slate-950 bg-teal-400 hover:bg-teal-300 font-bold"
+                  }`}
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   Open in Recovery Workspace
@@ -1638,24 +2256,36 @@ export function CustomPlanBuilder({
 
             {/* Validation Result Messages */}
             {validationResult && (
-              <div className="mt-2 pt-2 border-t border-slate-200 text-xs">
+              <div
+                className={`mt-2 pt-2 border-t text-xs ${
+                  isLight ? "border-slate-200" : "border-slate-800"
+                }`}
+              >
                 {validationResult.isValid ? (
                   <div className="space-y-1">
-                    <p className="text-emerald-700 font-medium flex items-center gap-1">
+                    <p
+                      className={`font-medium flex items-center gap-1 ${
+                        isLight ? "text-emerald-700" : "text-emerald-400"
+                      }`}
+                    >
                       <CheckCircle2 className="w-4 h-4" />
                       Plan is structurally valid! Projected duration:{" "}
                       {validationResult.schedule?.projectFinishHours}h, Slack:{" "}
                       {validationResult.schedule?.projectSlack}h
                     </p>
                     {!validationResult.isDomainVerified && (
-                      <p className="text-amber-700 flex items-center gap-1">
+                      <p
+                        className={`flex items-center gap-1 ${
+                          isLight ? "text-amber-700" : "text-amber-300"
+                        }`}
+                      >
                         <AlertTriangle className="w-3.5 h-3.5" />
                         Domain &ldquo;{validationResult.domainName}&rdquo; is unverified.
                       </p>
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-1 text-rose-600">
+                  <div className="space-y-1 text-rose-500">
                     {validationResult.schemaErrors.map((e, idx) => (
                       <p key={idx} className="flex items-center gap-1">
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
