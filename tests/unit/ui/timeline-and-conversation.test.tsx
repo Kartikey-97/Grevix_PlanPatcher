@@ -129,9 +129,53 @@ describe("Milestone S7.5: Interactive Schedule Timeline and Conversational Recov
       );
 
       expect(html).toContain("Active Recovery Session");
+      expect(html).toContain("Active Recovery Session (2 turns)");
       expect(html).toContain("The main venue cancelled for our festival.");
       expect(html).toContain("Grounded disruption extracted: T03 venue is unavailable.");
       expect(html).toContain("Reset Conversation");
+    });
+
+    it("does not duplicate user turn when building conversation history", () => {
+      const prompt = "Reduce our overall budget to ₹7500.";
+      const activeHistory = [
+        { role: "user" as const, content: prompt },
+      ];
+
+      // Simulate the workspace deduplication logic
+      const baseHistory =
+        activeHistory.length > 0 &&
+        activeHistory[activeHistory.length - 1].role === "user" &&
+        activeHistory[activeHistory.length - 1].content === prompt
+          ? [...activeHistory]
+          : [...activeHistory, { role: "user" as const, content: prompt }];
+
+      expect(baseHistory).toHaveLength(1);
+      expect(baseHistory[0].content).toBe(prompt);
+
+      const finalHistory = [
+        ...baseHistory,
+        { role: "assistant" as const, content: "Interpreted disruption: Budget reduced to ₹7500. (budget_changed)" },
+      ];
+
+      expect(finalHistory).toHaveLength(2);
+      expect(finalHistory[0].role).toBe("user");
+      expect(finalHistory[1].role).toBe("assistant");
+
+      const html = renderToString(
+        <DisruptionInput
+          onAnalyzePrompt={async () => {}}
+          onDirectScenarioSelect={() => {}}
+          isInterpreting={false}
+          plan={plan}
+          isDemoPlan={true}
+          conversationHistory={finalHistory}
+        />
+      );
+
+      expect(html).toContain("Active Recovery Session (2 turns)");
+      // Should only contain prompt once in the conversation messages
+      const count = (html.match(/Reduce our overall budget to ₹7500\./g) || []).length;
+      expect(count).toBe(1);
     });
 
     it("renders clickable follow-up suggestions from interpretation result", () => {

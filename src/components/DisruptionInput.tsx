@@ -112,7 +112,7 @@ export function DisruptionInput({
     }
   }, [externalHistory]);
 
-  const activeHistory = externalHistory && externalHistory.length > 0 ? externalHistory : localHistory;
+  const activeHistory = localHistory;
 
   // If a custom plan is active, build relevant quick examples from its tasks
   const customExamples: ExamplePrompt[] = React.useMemo(() => {
@@ -180,14 +180,16 @@ export function DisruptionInput({
     const trimmed = textToSubmit.trim();
     setPrompt("");
 
-    // Update history locally
-    const updatedHistory: ConversationMessage[] = [
-      ...localHistory,
-      { role: "user", content: trimmed },
-    ];
-    setLocalHistory(updatedHistory);
+    const priorHistory = [...localHistory];
 
-    await onAnalyzePrompt(trimmed, scenarioId, updatedHistory);
+    // Optimistically update history locally for immediate UI feedback
+    setLocalHistory([
+      ...priorHistory,
+      { role: "user", content: trimmed },
+    ]);
+
+    // Send prior history (before this new turn) to the analyzer
+    await onAnalyzePrompt(trimmed, scenarioId, priorHistory);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -291,7 +293,7 @@ export function DisruptionInput({
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5 text-teal-500" />
-            <span>Active Recovery Session ({activeHistory.length} turns)</span>
+            <span>{`Active Recovery Session (${activeHistory.length} turns)`}</span>
           </div>
 
           <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1 text-xs">

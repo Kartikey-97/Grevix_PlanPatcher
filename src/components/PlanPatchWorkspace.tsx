@@ -206,6 +206,23 @@ export function PlanPatchWorkspace() {
           prompt.toLowerCase().includes("no longer available"))
     );
 
+    // Filter out active prompt from conversation history sent to the API
+    // so Gemini does not receive the current prompt both as 'User Disruption Report' AND at the end of 'Prior Conversation History'
+    const historyForApi =
+      activeHistory.length > 0 &&
+      activeHistory[activeHistory.length - 1].role === "user" &&
+      activeHistory[activeHistory.length - 1].content === prompt
+        ? activeHistory.slice(0, -1)
+        : activeHistory;
+
+    // Base history with deduplicated user turn (prevent appending user turn twice)
+    const baseHistory: ConversationMessage[] =
+      activeHistory.length > 0 &&
+      activeHistory[activeHistory.length - 1].role === "user" &&
+      activeHistory[activeHistory.length - 1].content === prompt
+        ? [...activeHistory]
+        : [...activeHistory, { role: "user", content: prompt }];
+
     try {
       const res = await fetch("/api/interpret-disruption", {
         method: "POST",
@@ -213,7 +230,7 @@ export function PlanPatchWorkspace() {
         body: JSON.stringify({
           prompt,
           plan: baselinePlan,
-          conversationHistory: activeHistory,
+          conversationHistory: historyForApi,
         }),
       });
 
@@ -233,8 +250,7 @@ export function PlanPatchWorkspace() {
             offlineNotice: "Gemini is temporarily unavailable. Switched to the offline demo scenario.",
           });
           const newHistory: ConversationMessage[] = [
-            ...activeHistory,
-            { role: "user", content: prompt },
+            ...baseHistory,
             {
               role: "assistant",
               content: `[Offline Demo Scenario]: Gemini was temporarily unavailable. Switched to canonical scenario (${matchedCanonical.label}).`,
@@ -253,10 +269,7 @@ export function PlanPatchWorkspace() {
       setRetryCount(0); // Reset retry count on success
 
       // Append turns to conversation history (bounded to 10)
-      const newHistory: ConversationMessage[] = [
-        ...activeHistory,
-        { role: "user", content: prompt },
-      ];
+      const newHistory: ConversationMessage[] = [...baseHistory];
       if (data.status === "success") {
         newHistory.push({
           role: "assistant",
@@ -282,8 +295,7 @@ export function PlanPatchWorkspace() {
           offlineNotice: "Gemini is temporarily unavailable. Switched to the offline demo scenario.",
         });
         const newHistory: ConversationMessage[] = [
-          ...activeHistory,
-          { role: "user", content: prompt },
+          ...baseHistory,
           {
             role: "assistant",
             content: `[Offline Demo Scenario]: Network connection interrupted. Switched to canonical scenario (${matchedCanonical.label}).`,
