@@ -71,7 +71,7 @@ describe("Milestone S7: PlanPatch Interactive Workspace UI Components", () => {
         "Reduce our overall budget to ₹16,000."
       );
       expect(CANONICAL_EXAMPLE_PROMPTS[2].prompt).toBe(
-        "The deadline has moved two days earlier."
+        "The deadline has moved from 288h to 120h (7 days earlier)."
       );
 
       const html = renderToString(
@@ -84,7 +84,7 @@ describe("Milestone S7: PlanPatch Interactive Workspace UI Components", () => {
 
       expect(html).toContain("Venue Cancellation");
       expect(html).toContain("Budget Cut to ₹16,000");
-      expect(html).toContain("Deadline Moved 2 Days Earlier");
+      expect(html).toContain("Deadline Tightened to 120h (7 Days Earlier)");
       expect(html).toContain("Quick Load (Offline)");
       expect(html).toContain("Analyze Change");
     });
@@ -117,13 +117,50 @@ describe("Milestone S7: PlanPatch Interactive Workspace UI Components", () => {
       expect(html).not.toContain("Run Recovery Engine");
     });
 
-    it("renders error state with sanitized error and recovery options", () => {
+    it("renders error state with friendly message, original prompt, and Retry Request action", () => {
+      let retriedPrompt: string | null = null;
       const html = renderToString(
         <InterpretationReview
           result={{
             status: "error",
-            error: "Gemini API rate limit exceeded.",
-            originalPrompt: "The venue is gone",
+            error: "ResourceExhausted: 429 quota exhausted internal json details",
+            userFriendlyMessage: "The Gemini AI service is temporarily experiencing high demand. Please try again in a moment.",
+            category: "RATE_LIMIT_OR_OVERLOAD",
+            canRetry: true,
+            originalPrompt: "The venue is unavailable.",
+          }}
+          plan={plan}
+          onConfirm={() => {}}
+          onCancel={() => {}}
+          isRunningRecovery={false}
+          onRetry={(p) => {
+            retriedPrompt = p;
+          }}
+        />
+      );
+
+      expect(html).toContain("Interpretation Error");
+      expect(html).toContain("The Gemini AI service is temporarily experiencing high demand");
+      expect(html).toContain("The venue is unavailable.");
+      expect(html).toContain("Retry Request");
+      expect(html).not.toContain("ResourceExhausted: 429 quota exhausted internal json details");
+    });
+
+    it("renders offline notice banner when isOfflineFallback is true", () => {
+      const html = renderToString(
+        <InterpretationReview
+          result={{
+            status: "success",
+            disruption: {
+              type: "task_unavailable",
+              targetTaskId: "T03",
+              field: "bookingStatus",
+              newValue: "unavailable",
+              description: "Main Auditorium is unavailable.",
+            },
+            originalPrompt: "The venue is unavailable.",
+            isOfflineFallback: true,
+            offlineNotice: "Gemini is temporarily unavailable. Switched to the offline demo scenario.",
           }}
           plan={plan}
           onConfirm={() => {}}
@@ -132,9 +169,7 @@ describe("Milestone S7: PlanPatch Interactive Workspace UI Components", () => {
         />
       );
 
-      expect(html).toContain("Interpretation Error");
-      expect(html).toContain("Gemini API rate limit exceeded.");
-      expect(html).toContain("Revise Prompt or Select Scenario");
+      expect(html).toContain("Gemini is temporarily unavailable. Switched to the offline demo scenario.");
     });
 
     it("renders success state with structured fields and Run Recovery Engine action", () => {

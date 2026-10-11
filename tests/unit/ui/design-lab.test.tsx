@@ -235,7 +235,6 @@ describe("PlanPatch Design Lab — Prototypes and Comparison Matrix", () => {
       expect(html).toContain(
         "When a task fails, a resource disappears, or a deadline moves, PlanPatch finds alternative recovery paths while preserving the work that still matters."
       );
-      expect(html).toContain("DETERMINISTIC RECOVERY");
 
       // CTAs
       expect(html).toContain("Create a plan");

@@ -16,6 +16,7 @@ import {
   Layers,
   Calendar,
   Coins,
+  RefreshCw,
 } from "lucide-react";
 
 interface InterpretationReviewProps {
@@ -25,6 +26,7 @@ interface InterpretationReviewProps {
   onCancel: () => void;
   isRunningRecovery: boolean;
   onSelectSuggestion?: (suggestion: string) => void;
+  onRetry?: (originalPrompt: string) => void;
 }
 
 export function InterpretationReview({
@@ -34,18 +36,20 @@ export function InterpretationReview({
   onCancel,
   isRunningRecovery,
   onSelectSuggestion,
+  onRetry,
 }: InterpretationReviewProps) {
   const { isLight, isDark } = useTheme();
   if (result.status === "error") {
+    const displayError = result.userFriendlyMessage || result.error;
     return (
       <section className="bg-red-50/70 border border-red-200 rounded-xl p-6 shadow-sm space-y-4">
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <div className="space-y-1">
+          <div className="space-y-1 flex-1">
             <h3 className="text-base font-bold text-red-900">
               Interpretation Error
             </h3>
-            <p className="text-sm text-red-700">{result.error}</p>
+            <p className="text-sm text-red-700 leading-relaxed">{displayError}</p>
             <p className="text-xs text-red-600/80 mt-1">
               Original prompt: &ldquo;{result.originalPrompt}&rdquo;
             </p>
@@ -73,7 +77,17 @@ export function InterpretationReview({
           </div>
         )}
 
-        <div className="flex items-center gap-3 pt-2 border-t border-red-100">
+        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-red-100">
+          {onRetry && result.canRetry !== false && (
+            <button
+              type="button"
+              onClick={() => onRetry(result.originalPrompt)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition shadow-2xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry Request
+            </button>
+          )}
           <button
             type="button"
             onClick={onCancel}
@@ -193,6 +207,22 @@ export function InterpretationReview({
           : "bg-[#0d1322] border-slate-800 text-slate-100"
       }`}
     >
+      {/* Offline Fallback Notice Banner if applicable */}
+      {result.isOfflineFallback && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs flex items-center gap-2.5 ${
+            isLight
+              ? "bg-amber-50 border-amber-300 text-amber-900"
+              : "bg-amber-950/40 border-amber-800 text-amber-200"
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+          <span className="font-semibold">
+            {result.offlineNotice || "Gemini is temporarily unavailable. Switched to the offline demo scenario."}
+          </span>
+        </div>
+      )}
+
       {/* Step Header */}
       <div
         className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b transition-colors ${

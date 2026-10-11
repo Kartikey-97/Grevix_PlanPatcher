@@ -9,14 +9,21 @@ import {
   classifyGeminiError,
   type GeminiModelClient,
 } from "../../../lib/ai/gemini-client";
+import {
+  draftPlanRateLimiter,
+  extractClientIdentifier,
+  validatePayloadBounds,
+  type RateLimiter,
+} from "../../../lib/server/rate-limiter";
 
 /**
- * Core handler supporting optional dependency injection for model client.
+ * Core handler supporting optional dependency injection for model client and rate limiter.
  * Provides resilient, typed error responses with user-friendly messages.
  */
 export async function handleDraftPlan(
   request: Request,
-  injectedClient?: GeminiModelClient
+  injectedClient?: GeminiModelClient,
+  injectedLimiter?: RateLimiter
 ): Promise<NextResponse<DraftPlanResult>> {
   // 1. Verify JSON body
   let body: unknown;
@@ -55,6 +62,33 @@ export async function handleDraftPlan(
             : "",
       },
       { status: 400 }
+    );
+  }
+
+  // 3. Payload size bounds validation
+  const boundsCheck = validatePayloadBounds(parsedInput.data.prompt);
+  if (!boundsCheck.valid) {
+    return NextResponse.json<DraftPlanResult>(
+      {
+        status: "error",
+        error: boundsCheck.reason || "Payload size bounds exceeded.",
+        userFriendlyMessage: boundsCheck.reason || "Plan description is too large.",
+        category: "INVALID_MODEL_OUTPUT",
+        canRetry: false,
+        originalPrompt: parsedInput.data.prompt,
+      },
+      { status: 400 }
+    );
+  }
+
+  // 4. Server-side Rate Limiting (applies before expensive upstream model calls)
+  const limiter = injectedLimiter ?? draftPlanRateLimiter;
+  const clientId = extractClientIdentifier(request);
+  const rateLimitCheck = limiter.check(clientId);
+  if (!rateLimitCheck.allowed) {
+    return limiter.create429Response<DraftPlanResult>(
+      rateLimitCheck,
+      parsedInput.data.prompt
     );
   }
 

@@ -5,6 +5,7 @@ import type { Plan, Task, Dependency, TaskPolicy } from "../lib/schemas/plan.sch
 import {
   type DraftPlan,
   type DraftTask,
+  type DraftTaskAlternative,
   type FieldProvenance,
   convertDraftToPlan,
 } from "../lib/schemas/draft-plan.schema";
@@ -119,6 +120,12 @@ export function CustomPlanBuilder({
       budget: "30000",
       deadline: "80",
     },
+    {
+      label: "Vacation / Travel Trip",
+      text: "Plan a 5-day vacation trip with destination selection, flights, hotel booking, daily activities, and packing with ₹40,000 budget.",
+      budget: "40000",
+      deadline: "120",
+    },
   ];
 
   // 1. Submit prompt to /api/draft-plan
@@ -161,9 +168,20 @@ export function CustomPlanBuilder({
       if (data.status === "success" && data.draft) {
         setDraftPlan(data.draft);
         setIsDomainVerified(data.isDomainVerified ?? false);
-        const converted = convertDraftToPlan(data.draft);
-        setPlan(converted);
-        setValidationResult(validateCustomPlan(converted));
+        try {
+          const converted = convertDraftToPlan(data.draft);
+          setPlan(converted);
+          setValidationResult(validateCustomPlan(converted));
+        } catch (err: unknown) {
+          setValidationResult({
+            isValid: false,
+            schemaErrors: [err instanceof Error ? err.message : "Draft has unresolved required fields."],
+            graphErrors: [],
+            warnings: [],
+            isDomainVerified: false,
+            domainName: data.draft.domain || "generic",
+          });
+        }
         setMode("review_draft");
       }
     } catch (err: unknown) {
@@ -206,9 +224,60 @@ export function CustomPlanBuilder({
     setDraftPlan(updatedDraft);
 
     // Re-sync with canonical plan and validation
-    const converted = convertDraftToPlan(updatedDraft);
-    setPlan(converted);
-    setValidationResult(validateCustomPlan(converted));
+    try {
+      const converted = convertDraftToPlan(updatedDraft);
+      setPlan(converted);
+      setValidationResult(validateCustomPlan(converted));
+    } catch (err: unknown) {
+      setValidationResult({
+        isValid: false,
+        schemaErrors: [err instanceof Error ? err.message : "Draft has unresolved required fields."],
+        graphErrors: [],
+        warnings: [],
+        isDomainVerified: false,
+        domainName: updatedDraft.domain || "generic",
+      });
+    }
+  };
+
+  const handleToggleAlternativeStatus = (taskIndex: number, altIndex: number) => {
+    if (!draftPlan) return;
+    const task = draftPlan.tasks[taskIndex];
+    if (!task || !task.alternatives) return;
+    const currentAlts = [...task.alternatives];
+    const targetAlt = currentAlts[altIndex];
+    if (!targetAlt) return;
+    const newStatus = targetAlt.status === "confirmed" ? "suggested" : "confirmed";
+    currentAlts[altIndex] = { ...targetAlt, status: newStatus };
+    handleUpdateDraftTask(taskIndex, { alternatives: currentAlts });
+  };
+
+  const handleAddAlternative = (taskIndex: number) => {
+    if (!draftPlan) return;
+    const task = draftPlan.tasks[taskIndex];
+    if (!task) return;
+    const currentAlts = task.alternatives ? [...task.alternatives] : [];
+    const altNum = currentAlts.length + 1;
+    const newAlt: DraftTaskAlternative = {
+      id: `alt-${task.id.toLowerCase()}-${altNum}`,
+      title: `Alternative for ${task.title}`,
+      cost: task.cost !== null && task.cost !== undefined ? Math.round(task.cost * 0.8) : 1000,
+      costProvenance: "user_provided",
+      durationHours: task.durationHours !== null && task.durationHours !== undefined ? Math.round(task.durationHours * 0.8) : 8,
+      durationProvenance: "user_provided",
+      unknownFacts: [],
+      notes: "User-defined recovery alternative",
+      status: "confirmed",
+    };
+    handleUpdateDraftTask(taskIndex, { alternatives: [...currentAlts, newAlt] });
+  };
+
+  const handleRemoveAlternative = (taskIndex: number, altIndex: number) => {
+    if (!draftPlan) return;
+    const task = draftPlan.tasks[taskIndex];
+    if (!task || !task.alternatives) return;
+    const updatedAlts = task.alternatives.filter((_, idx) => idx !== altIndex);
+    handleUpdateDraftTask(taskIndex, { alternatives: updatedAlts });
   };
 
   const handleRemoveDraftTask = (taskId: string) => {
@@ -222,9 +291,20 @@ export function CustomPlanBuilder({
     const updatedDraft: DraftPlan = { ...draftPlan, tasks: remainingTasks };
     setDraftPlan(updatedDraft);
 
-    const converted = convertDraftToPlan(updatedDraft);
-    setPlan(converted);
-    setValidationResult(validateCustomPlan(converted));
+    try {
+      const converted = convertDraftToPlan(updatedDraft);
+      setPlan(converted);
+      setValidationResult(validateCustomPlan(converted));
+    } catch (err: unknown) {
+      setValidationResult({
+        isValid: false,
+        schemaErrors: [err instanceof Error ? err.message : "Draft has unresolved required fields."],
+        graphErrors: [],
+        warnings: [],
+        isDomainVerified: false,
+        domainName: updatedDraft.domain || "generic",
+      });
+    }
   };
 
   const handleAddDraftTask = () => {
@@ -234,10 +314,10 @@ export function CustomPlanBuilder({
     const newTask: DraftTask = {
       id: newId,
       title: `New Task ${nextNum}`,
-      cost: 5000,
-      costProvenance: "user_provided",
-      durationHours: 8,
-      durationProvenance: "user_provided",
+      cost: null,
+      costProvenance: "missing",
+      durationHours: null,
+      durationProvenance: "missing",
       priority: 3,
       priorityProvenance: "user_provided",
       policy: "flexible",
@@ -251,9 +331,20 @@ export function CustomPlanBuilder({
       tasks: [...draftPlan.tasks, newTask],
     };
     setDraftPlan(updatedDraft);
-    const converted = convertDraftToPlan(updatedDraft);
-    setPlan(converted);
-    setValidationResult(validateCustomPlan(converted));
+    try {
+      const converted = convertDraftToPlan(updatedDraft);
+      setPlan(converted);
+      setValidationResult(validateCustomPlan(converted));
+    } catch (err: unknown) {
+      setValidationResult({
+        isValid: false,
+        schemaErrors: [err instanceof Error ? err.message : "Draft has unresolved required fields."],
+        graphErrors: [],
+        warnings: [],
+        isDomainVerified: false,
+        domainName: updatedDraft.domain || "generic",
+      });
+    }
   };
 
   // 4. Predecessor toggle in draft review
@@ -299,6 +390,19 @@ export function CustomPlanBuilder({
   const handleConfirmDraftAndOpen = (skipMissingCheck = false) => {
     if (!draftPlan) return;
 
+    const missingCostTasks = draftPlan.tasks
+      .filter((t) => t.cost === null || t.cost === undefined || isNaN(t.cost))
+      .map((t) => t.id);
+    const missingDurationTasks = draftPlan.tasks
+      .filter((t) => t.durationHours === null || t.durationHours === undefined || isNaN(t.durationHours))
+      .map((t) => t.id);
+
+    // Tasks with missing cost or duration cannot be opened into workspace; required schema fields must be resolved
+    if (missingCostTasks.length > 0 || missingDurationTasks.length > 0) {
+      setShowMissingValuesModal(true);
+      return;
+    }
+
     if (!skipMissingCheck) {
       const unspecifiedBudget =
         draftPlan.budgetProvenance === "missing" ||
@@ -308,29 +412,30 @@ export function CustomPlanBuilder({
         draftPlan.deadlineProvenance === "missing" ||
         draftPlan.deadlineHours === null ||
         draftPlan.deadlineHours === undefined;
-      const missingCostTasks = draftPlan.tasks
-        .filter((t) => t.cost === null || t.cost === undefined)
-        .map((t) => t.id);
-      const missingDurationTasks = draftPlan.tasks
-        .filter((t) => t.durationHours === null || t.durationHours === undefined)
-        .map((t) => t.id);
 
-      if (
-        unspecifiedBudget ||
-        unspecifiedDeadline ||
-        missingCostTasks.length > 0 ||
-        missingDurationTasks.length > 0
-      ) {
+      if (unspecifiedBudget || unspecifiedDeadline) {
         setShowMissingValuesModal(true);
         return;
       }
     }
 
-    const converted = convertDraftToPlan(draftPlan);
-    const val = validateCustomPlan(converted);
-    setValidationResult(val);
-    if (val.isValid && val.plan) {
-      onLoadPlanToWorkspace(val.plan);
+    try {
+      const converted = convertDraftToPlan(draftPlan);
+      const val = validateCustomPlan(converted);
+      setValidationResult(val);
+      if (val.isValid && val.plan) {
+        onLoadPlanToWorkspace(val.plan);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Draft plan contains unresolved required fields.";
+      setValidationResult({
+        isValid: false,
+        schemaErrors: [msg],
+        graphErrors: [],
+        warnings: [],
+        isDomainVerified: false,
+        domainName: draftPlan.domain || "generic",
+      });
     }
   };
 
@@ -727,6 +832,17 @@ export function CustomPlanBuilder({
                   : "bg-[#0a0f1d] border-slate-700 text-slate-100 placeholder:text-slate-500"
               }`}
             />
+
+            <p
+              className={`text-xs mt-2.5 flex items-center gap-1.5 ${
+                isLight ? "text-slate-600" : "text-slate-400"
+              }`}
+            >
+              <Info className="w-3.5 h-3.5 shrink-0 text-blue-500" />
+              <span>
+                <strong>Tip:</strong> Specify key details like your destination, venue, or tech stack. If omitted, PlanPatch will explicitly add a discovery step (e.g. &ldquo;Select Destination&rdquo;) instead of inventing a fake one.
+              </span>
+            </p>
 
             {/* Quick Example Chips */}
             <div className="mt-4 flex flex-wrap items-center gap-2.5">
@@ -1303,20 +1419,23 @@ export function CustomPlanBuilder({
 
               {draftPlan.missingInformation.length > 0 && (
                 <div
-                  className={`p-3 rounded-lg border ${
+                  className={`p-3.5 rounded-lg border ${
                     isLight
-                      ? "bg-amber-50/60 border-amber-200 text-amber-800"
-                      : "bg-amber-950/30 border-amber-800/60 text-amber-300"
+                      ? "bg-amber-50/80 border-amber-200 text-amber-900"
+                      : "bg-amber-950/40 border-amber-800/70 text-amber-200"
                   }`}
                 >
                   <h4
-                    className={`text-xs font-semibold flex items-center gap-1.5 mb-2 ${
+                    className={`text-xs font-semibold flex items-center gap-1.5 mb-1.5 ${
                       isLight ? "text-amber-900" : "text-amber-200"
                     }`}
                   >
-                    <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-                    Actionable Missing Information:
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    Actionable Missing Information (Honest Provenance):
                   </h4>
+                  <p className={`text-[11px] mb-2 leading-relaxed ${isLight ? "text-amber-800/90" : "text-amber-300/80"}`}>
+                    PlanPatch never invents unprovided real-world entities. The following parameters were left unstated in your prompt:
+                  </p>
                   <ul className="text-xs space-y-1 list-disc list-inside">
                     {draftPlan.missingInformation.map((m, i) => (
                       <li key={i}>{m}</li>
@@ -1724,6 +1843,122 @@ export function CustomPlanBuilder({
                         </div>
                       </div>
                     </div>
+
+                    {/* Recovery Alternatives Section */}
+                    <div
+                      className={`pt-3 border-t space-y-2.5 ${
+                        isLight ? "border-slate-100" : "border-slate-800"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`text-xs font-semibold ${
+                                isLight ? "text-slate-800" : "text-slate-200"
+                              }`}
+                            >
+                              Recovery Alternatives (Disruption Resilience):
+                            </span>
+                            <span
+                              className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                                isLight
+                                  ? "bg-slate-100 text-slate-600 border-slate-200"
+                                  : "bg-slate-800 text-slate-300 border-slate-700"
+                              }`}
+                            >
+                              {task.alternatives?.length ?? 0} defined
+                            </span>
+                          </div>
+                          <span
+                            className={`text-[11px] block ${
+                              isLight ? "text-slate-500" : "text-slate-400"
+                            }`}
+                          >
+                            Evaluated by PlanPatch deterministic solver when tasks cancel, costs spike, or deadlines move.
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleAddAlternative(idx)}
+                          className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition ${
+                            isLight
+                              ? "bg-white text-teal-800 border-teal-300 hover:bg-teal-50"
+                              : "bg-teal-950/60 text-teal-200 border-teal-700 hover:bg-teal-900/80"
+                          }`}
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add Option
+                        </button>
+                      </div>
+
+                      {task.alternatives && task.alternatives.length > 0 ? (
+                        <div className="space-y-2">
+                          {task.alternatives.map((alt, altIdx) => (
+                            <div
+                              key={alt.id}
+                              className={`p-2.5 rounded-lg border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition ${
+                                alt.status === "confirmed"
+                                  ? isLight
+                                    ? "bg-emerald-50/60 border-emerald-200"
+                                    : "bg-emerald-950/30 border-emerald-800/80"
+                                  : isLight
+                                  ? "bg-slate-50 border-slate-200"
+                                  : "bg-[#0f172a] border-slate-800"
+                              }`}
+                            >
+                              <div className="space-y-0.5 flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-[10px] text-teal-600 font-bold shrink-0">
+                                    {alt.id}
+                                  </span>
+                                  <span className="font-semibold truncate">
+                                    {alt.title}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleAlternativeStatus(idx, altIdx)}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition ${
+                                      alt.status === "confirmed"
+                                        ? "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200"
+                                        : "bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200"
+                                    }`}
+                                    title="Click to toggle between suggested and confirmed"
+                                  >
+                                    {alt.status === "confirmed" ? "✓ Confirmed Alternative" : "Suggested (Review)"}
+                                  </button>
+                                </div>
+                                <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-3">
+                                  <span>Cost: ₹{alt.cost.toLocaleString()}</span>
+                                  <span>Duration: {alt.durationHours}h</span>
+                                  {alt.unknownFacts && alt.unknownFacts.length > 0 && (
+                                    <span className="italic text-amber-600">
+                                      Unverified facts: {alt.unknownFacts.join(", ")}
+                                    </span>
+                                  )}
+                                  {alt.notes && <span>Note: {alt.notes}</span>}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAlternative(idx, altIdx)}
+                                  className="p-1 text-slate-400 hover:text-red-500 transition"
+                                  title="Delete alternative"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-slate-400 italic p-2 rounded bg-slate-50/50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800">
+                          No alternatives declared. If this task is cancelled during project execution, the solver cannot generate replacement candidates unless marked optional.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -1838,47 +2073,74 @@ export function CustomPlanBuilder({
                       <strong>&bull; Project Deadline: Unspecified.</strong> The recovery engine will not enforce a deadline limit or compute schedule overdue.
                     </div>
                   )}
-                  {draftPlan.tasks.some((t) => t.cost === null || t.cost === undefined) && (
-                    <div>
-                      <strong>&bull; Task Costs:</strong> Tasks without cost estimates will default to ₹0.
+                  {draftPlan.tasks.some((t) => t.cost === null || t.cost === undefined || isNaN(t.cost)) && (
+                    <div className="text-rose-500 font-medium">
+                      <strong>&bull; Unresolved Task Costs:</strong> Tasks ({draftPlan.tasks.filter((t) => t.cost === null || t.cost === undefined || isNaN(t.cost)).map((t) => t.id).join(", ")}) do not have cost estimates. Required schema fields cannot be fabricated; please supply cost estimates in the draft editor before opening.
                     </div>
                   )}
                   {draftPlan.tasks.some(
-                    (t) => t.durationHours === null || t.durationHours === undefined
+                    (t) => t.durationHours === null || t.durationHours === undefined || isNaN(t.durationHours)
                   ) && (
-                    <div>
-                      <strong>&bull; Task Durations:</strong> Tasks without duration estimates will default to 0h.
+                    <div className="text-rose-500 font-medium">
+                      <strong>&bull; Unresolved Task Durations:</strong> Tasks ({draftPlan.tasks.filter((t) => t.durationHours === null || t.durationHours === undefined || isNaN(t.durationHours)).map((t) => t.id).join(", ")}) do not have duration estimates. Required schema fields cannot be fabricated; please supply duration estimates in the draft editor before opening.
                     </div>
                   )}
                 </div>
 
-                <div
-                  className={`flex items-center justify-end gap-3 pt-3 border-t ${
-                    isLight ? "border-slate-100" : "border-slate-800"
-                  }`}
-                >
-                  <button
-                    onClick={() => setShowMissingValuesModal(false)}
-                    className={`px-4 py-2 text-xs font-medium transition-colors ${
-                      isLight ? "text-slate-600 hover:text-slate-800" : "text-slate-400 hover:text-white"
+                {draftPlan.tasks.some(
+                  (t) =>
+                    t.cost === null ||
+                    t.cost === undefined ||
+                    isNaN(t.cost) ||
+                    t.durationHours === null ||
+                    t.durationHours === undefined ||
+                    isNaN(t.durationHours)
+                ) ? (
+                  <div
+                    className={`flex items-center justify-end gap-3 pt-3 border-t ${
+                      isLight ? "border-slate-100" : "border-slate-800"
                     }`}
                   >
-                    Cancel &amp; Edit Values
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowMissingValuesModal(false);
-                      handleConfirmDraftAndOpen(true);
-                    }}
-                    className={`px-4 py-2 text-xs font-semibold rounded-lg shadow-sm transition-colors ${
-                      isLight
-                        ? "text-white bg-blue-600 hover:bg-blue-700"
-                        : "text-slate-950 bg-teal-400 hover:bg-teal-300 font-bold"
+                    <button
+                      onClick={() => setShowMissingValuesModal(false)}
+                      className={`px-4 py-2 text-xs font-semibold rounded-lg shadow-sm transition-colors ${
+                        isLight
+                          ? "text-white bg-blue-600 hover:bg-blue-700"
+                          : "text-slate-950 bg-teal-400 hover:bg-teal-300 font-bold"
+                      }`}
+                    >
+                      Return to Draft Editor &amp; Supply Values
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className={`flex items-center justify-end gap-3 pt-3 border-t ${
+                      isLight ? "border-slate-100" : "border-slate-800"
                     }`}
                   >
-                    Confirm &amp; Open Workspace
-                  </button>
-                </div>
+                    <button
+                      onClick={() => setShowMissingValuesModal(false)}
+                      className={`px-4 py-2 text-xs font-medium transition-colors ${
+                        isLight ? "text-slate-600 hover:text-slate-800" : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      Cancel &amp; Edit Values
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMissingValuesModal(false);
+                        handleConfirmDraftAndOpen(true);
+                      }}
+                      className={`px-4 py-2 text-xs font-semibold rounded-lg shadow-sm transition-colors ${
+                        isLight
+                          ? "text-white bg-blue-600 hover:bg-blue-700"
+                          : "text-slate-950 bg-teal-400 hover:bg-teal-300 font-bold"
+                      }`}
+                    >
+                      Confirm &amp; Open Workspace
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

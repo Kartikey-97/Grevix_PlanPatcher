@@ -31,6 +31,25 @@ export const DraftTaskPolicySchema = z.enum([
 export type DraftTaskPolicy = z.infer<typeof DraftTaskPolicySchema>;
 
 /**
+ * Task alternative within a draft plan for disruption recovery.
+ */
+export const DraftTaskAlternativeSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  cost: z.number().min(0).default(0),
+  costProvenance: FieldProvenanceSchema.default("ai_estimate"),
+  durationHours: z.number().min(0).default(0),
+  durationProvenance: FieldProvenanceSchema.default("ai_estimate"),
+  unknownFacts: z.array(z.string()).default([]),
+  notes: z.string().optional(),
+  status: z.enum(["suggested", "confirmed"]).default("suggested"),
+  availability: z.string().optional(),
+  inputs: z.record(z.unknown()).optional(),
+  outputs: z.record(z.unknown()).optional(),
+});
+export type DraftTaskAlternative = z.infer<typeof DraftTaskAlternativeSchema>;
+
+/**
  * Task within a draft plan before formal plan validation.
  */
 export const DraftTaskSchema = z.object({
@@ -48,6 +67,7 @@ export const DraftTaskSchema = z.object({
   predecessorIds: z.array(z.string()).default([]),
   dependenciesProvenance: FieldProvenanceSchema.default("ai_estimate"),
   notes: z.string().optional(),
+  alternatives: z.array(DraftTaskAlternativeSchema).optional(),
 });
 
 export type DraftTask = z.infer<typeof DraftTaskSchema>;
@@ -68,6 +88,7 @@ export const DraftPlanSchema = z.object({
   assumptions: z.array(z.string()).default([]),
   missingInformation: z.array(z.string()).default([]),
   confidence: z.number().min(0).max(1).optional(),
+  demoAlternatives: z.record(z.unknown()).optional(),
 });
 
 export type DraftPlan = z.infer<typeof DraftPlanSchema>;
@@ -78,17 +99,54 @@ export type DraftPlan = z.infer<typeof DraftPlanSchema>;
  * Never fabricates values just to satisfy the schema.
  */
 export function convertDraftToPlan(draft: DraftPlan): Plan {
-  const tasks: Task[] = draft.tasks.map((dt) => ({
-    id: dt.id,
-    title: dt.title,
-    cost: dt.cost !== null && dt.cost !== undefined ? dt.cost : 0,
-    durationHours: dt.durationHours !== null && dt.durationHours !== undefined ? dt.durationHours : 0,
-    priority: dt.priority,
-    policy: (dt.policy === "flexible" ? "replaceable" : dt.policy) as TaskPolicy,
-    status: "pending",
-    inputs: {},
-    outputs: {},
-  }));
+  const demoAlternativesCatalog: Record<string, unknown> = {
+    ...(draft.demoAlternatives ?? {}),
+  };
+
+  const tasks: Task[] = draft.tasks.map((dt) => {
+    if (dt.cost === null || dt.cost === undefined || isNaN(dt.cost)) {
+      throw new Error(
+        `Cannot convert draft task "${dt.id}" to canonical Plan: cost is unresolved (missing). Required schema fields must be explicitly supplied or confirmed.`
+      );
+    }
+    if (dt.durationHours === null || dt.durationHours === undefined || isNaN(dt.durationHours)) {
+      throw new Error(
+        `Cannot convert draft task "${dt.id}" to canonical Plan: durationHours is unresolved (missing). Required schema fields must be explicitly supplied or confirmed.`
+      );
+    }
+
+    const altIds: string[] = [];
+    if (dt.alternatives && dt.alternatives.length > 0) {
+      for (const alt of dt.alternatives) {
+        altIds.push(alt.id);
+        demoAlternativesCatalog[alt.id] = {
+          id: alt.id,
+          title: alt.title,
+          name: alt.title,
+          cost: alt.cost,
+          durationHours: alt.durationHours,
+          unknownFacts: alt.unknownFacts,
+          notes: alt.notes,
+          availability: alt.availability,
+          inputs: alt.inputs ?? {},
+          outputs: alt.outputs ?? {},
+        };
+      }
+    }
+
+    return {
+      id: dt.id,
+      title: dt.title,
+      cost: dt.cost,
+      durationHours: dt.durationHours,
+      priority: dt.priority,
+      policy: (dt.policy === "flexible" ? "replaceable" : dt.policy) as TaskPolicy,
+      status: "pending",
+      inputs: {},
+      outputs: {},
+      alternatives: altIds.length > 0 ? altIds : undefined,
+    };
+  });
 
   const dependencies: Dependency[] = [];
   for (const task of draft.tasks) {
@@ -147,5 +205,9 @@ export function convertDraftToPlan(draft: DraftPlan): Plan {
     },
     tasks,
     dependencies,
+    demoAlternatives:
+      Object.keys(demoAlternativesCatalog).length > 0
+        ? demoAlternativesCatalog
+        : undefined,
   };
 }

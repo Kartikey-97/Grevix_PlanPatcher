@@ -157,20 +157,6 @@ export function ConceptAEditorial({
         />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Eyebrow badge */}
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold tracking-wider transition-colors ${
-                isLight
-                  ? "border-teal-500/30 bg-teal-50 text-teal-700"
-                  : "border-teal-400/30 bg-teal-400/10 text-teal-400"
-              }`}
-            >
-              <Zap className="h-3.5 w-3.5" />
-              DETERMINISTIC RECOVERY
-            </span>
-          </div>
-
           {/* Hero Section: Left / Right Clean Composition */}
           <div className="mt-8 grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-12">
             {/* Left Narrative Column */}

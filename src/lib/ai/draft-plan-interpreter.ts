@@ -17,6 +17,21 @@ import { validateExplainableGraph } from "../graph/validate-explainable";
 import { getDomainValidators } from "../engine/validate-constraints";
 
 /**
+ * Raw output schema for task recovery alternatives.
+ */
+export const RawModelDraftAlternativeSchema = z.object({
+  id: z.string().default("alt-1").describe("Alternative identifier, e.g. alt-t02-1"),
+  title: z.string().default("Alternative Option").describe("Clear title for the recovery alternative"),
+  cost: z.coerce.number().min(0).default(0).describe("Estimated alternative cost"),
+  costProvenance: z.enum(["user_provided", "ai_estimate", "derived", "missing"]).default("ai_estimate"),
+  durationHours: z.coerce.number().min(0).default(0).describe("Estimated alternative duration in hours"),
+  durationProvenance: z.enum(["user_provided", "ai_estimate", "derived", "missing"]).default("ai_estimate"),
+  unknownFacts: z.array(z.string()).default([]).describe("Unverified real-world assumptions (e.g. availability, equipment)"),
+  notes: z.string().optional(),
+  status: z.enum(["suggested", "confirmed"]).default("suggested"),
+});
+
+/**
  * Raw output schema expected from the Gemini model for draft planning.
  */
 export const RawModelDraftTaskSchema = z.object({
@@ -34,6 +49,7 @@ export const RawModelDraftTaskSchema = z.object({
   predecessorIds: z.array(z.string()).default([]).describe("IDs of tasks that must finish before this task starts"),
   dependenciesProvenance: z.enum(["user_provided", "ai_estimate", "derived", "missing"]).default("ai_estimate"),
   notes: z.string().optional().describe("Optional notes or reasoning for estimates"),
+  alternatives: z.array(RawModelDraftAlternativeSchema).default([]).describe("Recovery alternatives for replaceable tasks"),
 });
 
 export const RawModelDraftPlanSchema = z.object({
@@ -103,6 +119,24 @@ function normalizeRawPlan(raw: unknown): unknown {
         task.predecessorIds = [];
       }
 
+      // Alternatives normalization
+      if (Array.isArray(task.alternatives)) {
+        task.alternatives = task.alternatives.map((alt: unknown, altIdx: number) => {
+          if (!alt || typeof alt !== "object") return alt;
+          const a = { ...(alt as Record<string, unknown>) };
+          if (!a.id) a.id = `alt-${String(task.id).toLowerCase()}-${altIdx + 1}`;
+          if (!a.title && typeof a.name === "string") a.title = a.name;
+          if (!a.title) a.title = `Alternative ${altIdx + 1}`;
+          if (a.durationHours === undefined && a.duration !== undefined) a.durationHours = a.duration;
+          if (a.durationHours === undefined && a.hours !== undefined) a.durationHours = a.hours;
+          if (a.cost === undefined && a.estimatedCost !== undefined) a.cost = a.estimatedCost;
+          if (!Array.isArray(a.unknownFacts)) a.unknownFacts = [];
+          return a;
+        });
+      } else {
+        task.alternatives = [];
+      }
+
       return task;
     });
   } else {
@@ -137,7 +171,22 @@ const DRAFT_PLAN_RESPONSE_SCHEMA = {
           durationProvenance: { type: "STRING", enum: ["user_provided", "ai_estimate", "missing"] },
           priority: { type: "INTEGER" },
           policy: { type: "STRING", enum: ["fixed", "flexible", "replaceable", "optional"] },
-          predecessorIds: { type: "ARRAY", items: { type: "STRING" } }
+          predecessorIds: { type: "ARRAY", items: { type: "STRING" } },
+          alternatives: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                id: { type: "STRING" },
+                title: { type: "STRING" },
+                cost: { type: "NUMBER" },
+                durationHours: { type: "NUMBER" },
+                unknownFacts: { type: "ARRAY", items: { type: "STRING" } },
+                notes: { type: "STRING" }
+              },
+              required: ["id", "title"]
+            }
+          }
         },
         required: ["id", "title", "cost", "durationHours", "priority", "policy"]
       }
@@ -204,6 +253,14 @@ CRITICAL RULES ON FACTUALITY & PROVENANCE:
 10. Priority: integer from 1 (lowest) to 5 (highest, mission-critical).
 11. In "assumptions", explicitly list key assumptions (1-3 items).
 12. In "missingInformation", explicitly list unknown details that the user should verify (1-3 items).
+13. DOMAIN-SPECIFIC MISSING PARAMETERS & PROVENANCE INTEGRITY:
+   - If the user describes a trip, vacation, travel, or event without explicitly stating the destination or dates, NEVER hallucinate or invent a specific destination city/country (e.g. do NOT invent "Trip to Paris" or "Trip to Goa").
+   - Instead, designate the first task (T01) as "Destination & Travel Dates Selection" (fixed policy) to discover and confirm these parameters first.
+   - Prominently record in "missingInformation": "Target destination & travel dates were not specified in prompt — required to confirm final route, transit, and lodging bookings."
+   - Prominently record in "assumptions": "Trip destination unconfirmed in prompt; downstream transit and accommodation tasks depend on confirming target destination in T01."
+14. RECOVERY ALTERNATIVES & RESILIENCE:
+   - For replaceable or flexible tasks, provide 1 to 2 realistic recovery alternatives with an "id" (e.g. "alt-t02-1"), "title", estimated "cost", estimated "durationHours", and "unknownFacts" (e.g. ingredient or venue availability).
+   - For non-critical optional steps, set policy to "optional" so deterministic recovery can evaluate task removal under severe budget or schedule pressure.
 
 Output must be strictly valid JSON matching the requested schema.
 `.trim();
@@ -468,6 +525,191 @@ ${JSON.stringify(promptPayload, null, 2)}
 }
 
 /**
+ * Structured travel intent extracted from user prompt.
+ * Enables adaptive missing-information handling and prevents hallucinating destinations.
+ */
+export interface ParsedTravelIntent {
+  isTravel: boolean;
+  destination: string | null;
+  destinationProvenance: FieldProvenance;
+  durationDays: number | null;
+  durationHours: number | null;
+  durationProvenance: FieldProvenance;
+  partySize: number | null;
+  partySizeProvenance: FieldProvenance;
+  dateRange: { start: string; end: string } | null;
+  hasUnanchoredYear: boolean;
+  relativeDate: string | null;
+  budgetLimit: number | null;
+  budgetProvenance: FieldProvenance;
+}
+
+/**
+ * Parses user prompt for travel-specific entities (destination, dates, duration, party, budget).
+ * Treats relative dates with care; preserves unknown fields as 'missing'.
+ */
+export function parseTravelIntent(
+  rawPrompt: string,
+  inputBudget?: number | null,
+  inputDeadline?: number | null
+): ParsedTravelIntent {
+  const prompt = rawPrompt.trim();
+  const promptLower = prompt.toLowerCase();
+
+  const isTravel =
+    promptLower.includes("travel") ||
+    promptLower.includes("trip") ||
+    promptLower.includes("vacation") ||
+    promptLower.includes("holiday") ||
+    promptLower.includes("tour") ||
+    promptLower.includes("itinerary") ||
+    promptLower.includes("flight") ||
+    promptLower.includes("hotel") ||
+    promptLower.includes("destination") ||
+    /\b(goa|jaipur|paris|tokyo|kerala|manali|mumbai|delhi|london|rome|bali)\b/i.test(promptLower);
+
+  if (!isTravel) {
+    return {
+      isTravel: false,
+      destination: null,
+      destinationProvenance: "missing",
+      durationDays: null,
+      durationHours: inputDeadline ?? null,
+      durationProvenance: inputDeadline ? "user_provided" : "missing",
+      partySize: null,
+      partySizeProvenance: "missing",
+      dateRange: null,
+      hasUnanchoredYear: false,
+      relativeDate: null,
+      budgetLimit: inputBudget ?? null,
+      budgetProvenance: inputBudget !== undefined && inputBudget !== null && inputBudget >= 0 ? "user_provided" : "missing",
+    };
+  }
+
+  // 1. Destination Extraction
+  let destination: string | null = null;
+  const knownDestinations = ["goa", "jaipur", "manali", "kerala", "mumbai", "delhi", "tokyo", "paris", "london", "rome", "bali"];
+  for (const kd of knownDestinations) {
+    const regex = new RegExp(`\\b${kd}\\b`, "i");
+    if (regex.test(prompt)) {
+      destination = kd.charAt(0).toUpperCase() + kd.slice(1);
+      break;
+    }
+  }
+
+  if (!destination) {
+    const destMatch = prompt.match(/(?:trip|vacation|travel|tour|flight(?:s)?)\s+to\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)(?:\s+from|\s+for|\s+with|\s+leaving|\s+in|$|\.|\,)/i);
+    if (destMatch && destMatch[1]) {
+      const candidate = destMatch[1].trim();
+      const forbidden = ["a", "an", "the", "four", "two", "three", "five", "some", "my", "our"];
+      if (!forbidden.includes(candidate.toLowerCase())) {
+        destination = candidate.charAt(0).toUpperCase() + candidate.slice(1);
+      }
+    }
+  }
+
+  // 2. Duration Extraction
+  let durationDays: number | null = null;
+  let durationProvenance: FieldProvenance = "missing";
+
+  const numWords: Record<string, number> = {
+    one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  };
+
+  const dayWordMatch = prompt.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s*[- ]\s*day\b/i);
+  if (dayWordMatch) {
+    const rawVal = dayWordMatch[1].toLowerCase();
+    durationDays = numWords[rawVal] || parseInt(rawVal, 10);
+    durationProvenance = "user_provided";
+  } else {
+    const daysMatch = prompt.match(/\b(\d+)\s+days\b/i);
+    if (daysMatch) {
+      durationDays = parseInt(daysMatch[1], 10);
+      durationProvenance = "user_provided";
+    }
+  }
+
+  // 3. Calendar Date Range Extraction
+  let dateRange: { start: string; end: string } | null = null;
+  let hasUnanchoredYear = false;
+  const dateRangeMatch = prompt.match(/\bfrom\s+(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+to\s+(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)(?:\s+(\d{4}))?/i);
+  if (dateRangeMatch) {
+    dateRange = {
+      start: dateRangeMatch[1].trim(),
+      end: dateRangeMatch[2].trim(),
+    };
+    hasUnanchoredYear = !dateRangeMatch[3] && !/\b20\d{2}\b/.test(prompt);
+    if (!durationDays) {
+      const startNum = parseInt(dateRange.start, 10);
+      const endNum = parseInt(dateRange.end, 10);
+      if (!isNaN(startNum) && !isNaN(endNum) && endNum > startNum) {
+        durationDays = endNum - startNum;
+        durationProvenance = "derived";
+      }
+    }
+  }
+
+  // 4. Relative Date Extraction
+  let relativeDate: string | null = null;
+  const relativeMatch = prompt.match(/\b(leaving\s+next\s+[A-Za-z]+|next\s+friday|next\s+week|this\s+weekend|next\s+month|tomorrow)\b/i);
+  if (relativeMatch) {
+    relativeDate = relativeMatch[1].trim();
+  }
+
+  // 5. Party Size Extraction
+  let partySize: number | null = null;
+  let partySizeProvenance: FieldProvenance = "missing";
+  const partyMatch = prompt.match(/\bfor\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:people|travelers|guests|persons|friends)\b/i);
+  if (partyMatch) {
+    const rawVal = partyMatch[1].toLowerCase();
+    partySize = numWords[rawVal] || parseInt(rawVal, 10);
+    partySizeProvenance = "user_provided";
+  }
+
+  // 6. Budget Extraction
+  let budgetLimit: number | null = null;
+  let budgetProvenance: FieldProvenance = "missing";
+  if (inputBudget !== undefined && inputBudget !== null && inputBudget >= 0) {
+    budgetLimit = inputBudget;
+    budgetProvenance = "user_provided";
+  } else {
+    const budgetKeyword = prompt.match(/\bbudget\s+of\s+[₹RsINR\.]*\s*([0-9,]+)/i);
+    if (budgetKeyword && budgetKeyword[1]) {
+      const cleanNum = parseFloat(budgetKeyword[1].replace(/,/g, ""));
+      if (!isNaN(cleanNum) && cleanNum > 0) {
+        budgetLimit = cleanNum;
+        budgetProvenance = "user_provided";
+      }
+    }
+  }
+
+  // 7. Duration Hours (Deadline)
+  let durationHours: number | null = null;
+  if (inputDeadline !== undefined && inputDeadline !== null && inputDeadline > 0) {
+    durationHours = inputDeadline;
+    durationProvenance = "user_provided";
+  } else if (durationDays !== null) {
+    durationHours = durationDays * 24;
+  }
+
+  return {
+    isTravel: true,
+    destination,
+    destinationProvenance: destination ? "user_provided" : "missing",
+    durationDays,
+    durationHours,
+    durationProvenance,
+    partySize,
+    partySizeProvenance,
+    dateRange,
+    hasUnanchoredYear,
+    relativeDate,
+    budgetLimit,
+    budgetProvenance,
+  };
+}
+
+/**
  * Intelligent domain baseline synthesis for resilient drafting when upstream AI is unreachable.
  * Strictly adheres to provenance tracking (unprovided budget/deadline remain 'missing').
  */
@@ -489,6 +731,204 @@ export function generateSmartFallbackDraftPlan(input: DraftPlanInput): DraftPlan
   let goal = input.prompt.trim();
   let domain = "generic";
   let tasks: DraftTask[] = [];
+
+  const travelIntent = parseTravelIntent(input.prompt, input.budgetLimit, input.deadlineHours);
+  if (travelIntent.isTravel) {
+    const dest = travelIntent.destination;
+    const durDays = travelIntent.durationDays;
+    const durHours = travelIntent.durationHours;
+    const party = travelIntent.partySize;
+    const dates = travelIntent.dateRange;
+    const relDate = travelIntent.relativeDate;
+    const budget = travelIntent.budgetLimit;
+
+    // Plan Title
+    let travelName = "Travel & Vacation Plan";
+    if (dest && durDays && party) {
+      travelName = `Travel Plan: ${dest} (${durDays} Days, ${party} People)`;
+    } else if (dest && durDays) {
+      travelName = `Travel Plan: ${dest} (${durDays} Days)`;
+    } else if (dest && dates) {
+      travelName = `Travel Plan: ${dest} (${dates.start}–${dates.end})`;
+    } else if (dest) {
+      travelName = `Travel Plan: ${dest}`;
+    } else if (party && durDays) {
+      travelName = `Vacation Plan for ${party} People (${durDays} Days)`;
+    }
+
+    // Adaptive Task T01
+    let t01Title = "Destination & Travel Dates Selection";
+    let t01Desc = "Select target destination city or region, determine calendar dates, and set traveler headcount.";
+    if (!dest) {
+      if (party) {
+        t01Title = `Select Destination & Travel Dates for ${party} People`;
+        t01Desc = budget
+          ? `Select target destination and lock calendar dates for party of ${party} within ₹${budget.toLocaleString()} budget.`
+          : `Select target destination and lock calendar dates for party of ${party} travelers.`;
+      }
+    } else if (relDate) {
+      t01Title = `Confirm Exact Calendar Date for '${relDate}' Departure to ${dest}`;
+      t01Desc = `Clarify relative '${relDate}' departure to an unambiguous calendar date for ${party || 1} traveler${party === 1 ? "" : "s"} to ${dest}.`;
+    } else if (dates && travelIntent.hasUnanchoredYear) {
+      t01Title = `Confirm Departure Year & Traveler Headcount for ${dest}`;
+      t01Desc = `Verify departure calendar year for ${dates.start}–${dates.end} and traveler headcount for ${dest}.`;
+    } else {
+      t01Title = `Confirm Travel Dates & Group Details for ${dest}`;
+      t01Desc = `Lock specific calendar start/end dates and confirm party size for ${durDays ? `${durDays}-day ` : ""}${dest} trip.`;
+    }
+
+    const t01Duration = durHours ? Math.max(4, Math.round(durHours * 0.08)) : 8;
+    const t02Duration = durHours ? Math.max(6, Math.round(durHours * 0.12)) : 12;
+    const t03Duration = durHours ? Math.max(6, Math.round(durHours * 0.12)) : 12;
+    const t04Duration = durHours ? Math.max(8, Math.round(durHours * 0.18)) : 16;
+    const t05Duration = durHours ? Math.max(4, Math.round(durHours * 0.08)) : 8;
+
+    const t02Cost = budget ? Math.round(budget * 0.4) : (party ? party * 4000 : 15000);
+    const t03Cost = budget ? Math.round(budget * 0.35) : (party ? party * 3500 : 12000);
+    const t04Cost = budget ? Math.round(budget * 0.175) : (party ? party * 2000 : 8000);
+    const t05Cost = budget ? Math.round(budget * 0.075) : 2000;
+
+    const travelTasks: DraftTask[] = [
+      {
+        id: "T01",
+        title: t01Title,
+        description: t01Desc,
+        cost: 0,
+        costProvenance: "ai_estimate",
+        durationHours: t01Duration,
+        durationProvenance: "ai_estimate",
+        priority: 5,
+        priorityProvenance: "ai_estimate",
+        policy: "fixed",
+        policyProvenance: "ai_estimate",
+        predecessorIds: [],
+        dependenciesProvenance: "ai_estimate",
+        notes: "Foundational trip parameters (destination and dates)",
+      },
+      {
+        id: "T02",
+        title: dest ? `Transit & Transportation to ${dest}` : "Transit & Transportation Booking",
+        description: party
+          ? `Book roundtrip transit (flights, trains, or road) for ${party} travelers${dest ? ` to ${dest}` : ""}.`
+          : `Book roundtrip transit tickets${dest ? ` to ${dest}` : ""} once travel dates are locked.`,
+        cost: t02Cost,
+        costProvenance: "ai_estimate",
+        durationHours: t02Duration,
+        durationProvenance: "ai_estimate",
+        priority: 5,
+        priorityProvenance: "ai_estimate",
+        policy: "fixed",
+        policyProvenance: "ai_estimate",
+        predecessorIds: ["T01"],
+        dependenciesProvenance: "ai_estimate",
+        notes: "Major transit booking (requires foundation resolved in T01)",
+      },
+      {
+        id: "T03",
+        title: dest ? `Lodging & Accommodation in ${dest}` : "Lodging & Accommodation Reservations",
+        description: dest
+          ? `Reserve hotel, resort, or rental property in ${dest} aligned with travel style and budget.`
+          : "Reserve hotel or accommodation matching preferred neighborhood and comfort style.",
+        cost: t03Cost,
+        costProvenance: "ai_estimate",
+        durationHours: t03Duration,
+        durationProvenance: "ai_estimate",
+        priority: 4,
+        priorityProvenance: "ai_estimate",
+        policy: "flexible",
+        policyProvenance: "ai_estimate",
+        predecessorIds: ["T01"],
+        dependenciesProvenance: "ai_estimate",
+        notes: "Lodging reservations (proceeds in parallel with transit)",
+      },
+      {
+        id: "T04",
+        title: dest ? `${dest} Sightseeing & Activity Itinerary` : "Daily Activities & Sightseeing Schedule",
+        description: dest
+          ? `Curate daily attractions, local dining, and excursion reservations across ${dest}.`
+          : "Plan daily sights, restaurant reservations, and local excursions.",
+        cost: t04Cost,
+        costProvenance: "ai_estimate",
+        durationHours: t04Duration,
+        durationProvenance: "ai_estimate",
+        priority: 3,
+        priorityProvenance: "ai_estimate",
+        policy: "flexible",
+        policyProvenance: "ai_estimate",
+        predecessorIds: ["T01"],
+        dependenciesProvenance: "ai_estimate",
+        notes: "Daily itinerary planning",
+      },
+      {
+        id: "T05",
+        title: dest ? `Packing & Final Prep for ${dest}` : "Packing, Travel Documents & Final Checklist",
+        description: dest
+          ? `Confirm reservations for ${dest}, pack weather-appropriate gear, and review final departure checklist.`
+          : "Confirm all reservations, pack gear, and complete departure checklist.",
+        cost: t05Cost,
+        costProvenance: "ai_estimate",
+        durationHours: t05Duration,
+        durationProvenance: "ai_estimate",
+        priority: 4,
+        priorityProvenance: "ai_estimate",
+        policy: "flexible",
+        policyProvenance: "ai_estimate",
+        predecessorIds: ["T02", "T03", "T04"],
+        dependenciesProvenance: "ai_estimate",
+        notes: "Departure prep & packing (requires bookings and itinerary in place)",
+      },
+    ];
+
+    const missingInfo: string[] = [];
+    if (!dest) {
+      missingInfo.push("Target destination not specified: Please select where you want to travel.");
+    }
+    if (dates && travelIntent.hasUnanchoredYear) {
+      missingInfo.push(`Calendar year for ${dates.start}–${dates.end} departure not explicitly specified (requires verification).`);
+    } else if (relDate) {
+      missingInfo.push(`Relative departure date '${relDate}' requires specific calendar date confirmation.`);
+    } else if (!dates && !relDate) {
+      missingInfo.push(
+        dest
+          ? `Specific calendar dates (start and end) for ${dest} not specified in prompt.`
+          : "Calendar travel dates and duration not specified."
+      );
+    }
+    if (!party) {
+      missingInfo.push("Traveler party size / headcount not specified.");
+    }
+    if (travelIntent.budgetProvenance === "missing") {
+      missingInfo.push("No explicit budget limit provided; estimated task allocations provided.");
+    }
+    if (travelIntent.durationProvenance === "missing") {
+      missingInfo.push("No explicit deadline hours provided; estimated durations provided.");
+    }
+
+    const assumptions: string[] = [];
+    if (!dest) {
+      assumptions.push("Trip destination unconfirmed: transit (T02), lodging (T03), and activities (T04) depend on selecting a destination in T01.");
+    } else if (dates && travelIntent.hasUnanchoredYear) {
+      assumptions.push("Unanchored calendar year: departure assumed for the upcoming occurrence of specified dates unless revised.");
+    } else if (relDate) {
+      assumptions.push(`Relative departure date: '${relDate}' anchored provisionally to the next upcoming occurrence.`);
+    }
+    assumptions.push("Transit (T02) and lodging (T03) planning proceed independently in parallel once foundation (T01) is confirmed.");
+    assumptions.push("Unknown availability and vendor pricing remain unverified: live vendor confirmation required before locking bookings.");
+
+    return {
+      name: travelName,
+      goal: input.prompt.trim(),
+      domain: "travel",
+      budgetLimit: travelIntent.budgetLimit,
+      budgetProvenance: travelIntent.budgetProvenance,
+      deadlineHours: travelIntent.durationHours,
+      deadlineProvenance: travelIntent.durationProvenance,
+      currency,
+      tasks: travelTasks,
+      assumptions,
+      missingInformation: missingInfo,
+    };
+  }
 
   if (
     promptLower.includes("ml") ||
@@ -785,6 +1225,30 @@ export function generateSmartFallbackDraftPlan(input: DraftPlanInput): DraftPlan
         predecessorIds: ["T01"],
         dependenciesProvenance: "ai_estimate",
         notes: "Stovetop cooking fundamentals",
+        alternatives: [
+          {
+            id: "alt-t02-pantry-searing",
+            title: "Pantry-Staple Sauté & Induction Method",
+            cost: userHasBudget ? Math.round(budgetLimit! * 0.12) : 1200,
+            costProvenance: "ai_estimate",
+            durationHours: userHasDeadline ? Math.max(4, Math.round(deadlineHours! * 0.15)) : 8,
+            durationProvenance: "ai_estimate",
+            unknownFacts: ["induction_cooktop_available"],
+            notes: "Alternative stovetop method with lower ingredient and equipment overhead.",
+            status: "suggested",
+          },
+          {
+            id: "alt-t02-express-saute",
+            title: "Express Microwave & Quick-Steam Technique",
+            cost: userHasBudget ? Math.round(budgetLimit! * 0.08) : 800,
+            costProvenance: "ai_estimate",
+            durationHours: userHasDeadline ? Math.max(3, Math.round(deadlineHours! * 0.1)) : 5,
+            durationProvenance: "ai_estimate",
+            unknownFacts: ["microwave_equipment_present"],
+            notes: "Rapid lower-cost alternative technique bypassing stovetop prep.",
+            status: "suggested",
+          },
+        ],
       },
       {
         id: "T03",
@@ -801,6 +1265,19 @@ export function generateSmartFallbackDraftPlan(input: DraftPlanInput): DraftPlan
         predecessorIds: ["T02"],
         dependenciesProvenance: "ai_estimate",
         notes: "Sauces and flavor building",
+        alternatives: [
+          {
+            id: "alt-t03-quick-pan-sauce",
+            title: "Quick Pan-Reduction & Pre-made Stock",
+            cost: userHasBudget ? Math.round(budgetLimit! * 0.09) : 900,
+            costProvenance: "ai_estimate",
+            durationHours: userHasDeadline ? Math.max(3, Math.round(deadlineHours! * 0.12)) : 6,
+            durationProvenance: "ai_estimate",
+            unknownFacts: ["pre_made_stock_available"],
+            notes: "Substitutes homemade long simmer with quality stock reduction.",
+            status: "suggested",
+          },
+        ],
       },
       {
         id: "T04",
@@ -812,11 +1289,24 @@ export function generateSmartFallbackDraftPlan(input: DraftPlanInput): DraftPlan
         durationProvenance: "ai_estimate",
         priority: 3,
         priorityProvenance: "ai_estimate",
-        policy: "flexible",
+        policy: "optional",
         policyProvenance: "ai_estimate",
         predecessorIds: ["T03"],
         dependenciesProvenance: "ai_estimate",
-        notes: "Oven techniques and textures",
+        notes: "Oven techniques and textures (optional enrichment)",
+        alternatives: [
+          {
+            id: "alt-t04-skillet-roast",
+            title: "Skillet Toasting & Stovetop Crisp",
+            cost: userHasBudget ? Math.round(budgetLimit! * 0.1) : 1100,
+            costProvenance: "ai_estimate",
+            durationHours: userHasDeadline ? Math.max(3, Math.round(deadlineHours! * 0.1)) : 6,
+            durationProvenance: "ai_estimate",
+            unknownFacts: ["cast_iron_pan_available"],
+            notes: "Bypasses oven preheating and high electric oven consumption.",
+            status: "suggested",
+          },
+        ],
       },
       {
         id: "T05",

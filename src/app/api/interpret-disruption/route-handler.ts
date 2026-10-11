@@ -6,14 +6,21 @@ import {
   type InterpretationResult,
   classifyGeminiError,
 } from "../../../lib/ai/disruption-interpreter";
+import {
+  disruptionRateLimiter,
+  extractClientIdentifier,
+  validatePayloadBounds,
+  type RateLimiter,
+} from "../../../lib/server/rate-limiter";
 
 /**
- * Core handler supporting optional dependency injection for model client.
+ * Core handler supporting optional dependency injection for model client and rate limiter.
  * Keeps interpretation strictly separate from authorization and plan execution.
  */
 export async function handleInterpretDisruption(
   request: Request,
-  injectedClient?: GeminiModelClient
+  injectedClient?: GeminiModelClient,
+  injectedLimiter?: RateLimiter
 ): Promise<NextResponse<InterpretationResult>> {
   // 1. Verify JSON body
   let body: unknown;
@@ -46,6 +53,34 @@ export async function handleInterpretDisruption(
             : "",
       },
       { status: 400 }
+    );
+  }
+
+  // 3. Validate payload size bounds (prevent runaway token/memory consumption)
+  const boundsCheck = validatePayloadBounds(
+    parsedInput.data.prompt,
+    parsedInput.data.conversationHistory
+  );
+  if (!boundsCheck.valid) {
+    return NextResponse.json<InterpretationResult>(
+      {
+        status: "error",
+        error: boundsCheck.reason || "Payload size bounds exceeded.",
+        userFriendlyMessage: boundsCheck.reason || "Prompt is too large.",
+        originalPrompt: parsedInput.data.prompt,
+      },
+      { status: 400 }
+    );
+  }
+
+  // 4. Server-side Rate Limiting (applies before expensive upstream model calls)
+  const limiter = injectedLimiter ?? disruptionRateLimiter;
+  const clientId = extractClientIdentifier(request);
+  const rateLimitCheck = limiter.check(clientId);
+  if (!rateLimitCheck.allowed) {
+    return limiter.create429Response<InterpretationResult>(
+      rateLimitCheck,
+      parsedInput.data.prompt
     );
   }
 

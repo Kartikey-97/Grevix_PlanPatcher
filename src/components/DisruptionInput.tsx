@@ -59,10 +59,10 @@ export const CANONICAL_EXAMPLE_PROMPTS: ExamplePrompt[] = [
     },
   },
   {
-    label: "Deadline Moved 2 Days Earlier",
+    label: "Deadline Tightened to 120h (7 Days Earlier)",
     scenarioId: "S3-deadline-moved-earlier",
-    prompt: "The deadline has moved two days earlier.",
-    description: "Plan-readiness deadline moves from 288h to 120h",
+    prompt: "The deadline has moved from 288h to 120h (7 days earlier).",
+    description: "Plan-readiness deadline moves from 288h to 120h (12 days to 5 days)",
     fallbackDisruption: {
       type: "deadline_changed",
       field: "deadlineHours",

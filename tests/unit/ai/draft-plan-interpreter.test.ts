@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   draftPlan,
   generateSmartFallbackDraftPlan,
+  parseTravelIntent,
   type DraftPlanInput,
 } from "../../../src/lib/ai/draft-plan-interpreter";
 import {
@@ -401,6 +402,24 @@ describe("Milestone S7.3: AI-Assisted Plan Creation and Resilient Gemini UX", ()
       expect(converted.tasks).toHaveLength(5);
       expect(converted.dependencies.length).toBe(4);
     });
+
+    it("synthesizes resilient travel domain draft for trip requests with unconfirmed destination flagged in missingInformation", () => {
+      const fallback = generateSmartFallbackDraftPlan({
+        prompt: "i want to plan a vacation trip",
+      });
+      expect(fallback.name).toContain("Travel & Vacation");
+      expect(fallback.domain).toBe("travel");
+      expect(fallback.tasks).toHaveLength(5);
+      expect(fallback.tasks[0].title).toContain("Destination & Travel Dates");
+      expect(fallback.tasks[1].title).toContain("Transit & Transportation");
+      expect(fallback.tasks[2].title).toContain("Lodging & Accommodation");
+      expect(fallback.tasks[0].policy).toBe("fixed");
+      expect(fallback.missingInformation.some((m) => m.toLowerCase().includes("destination"))).toBe(true);
+
+      const converted = convertDraftToPlan(fallback);
+      expect(converted.tasks).toHaveLength(5);
+      expect(converted.dependencies.length).toBeGreaterThanOrEqual(4);
+    });
   });
 
   describe("2. Error Categorization & Resilient UX", () => {
@@ -594,6 +613,251 @@ describe("Milestone S7.3: AI-Assisted Plan Creation and Resilient Gemini UX", ()
       expect(body.category).toBe("AUTH_OR_CONFIG_MISSING");
       expect(body.canRetry).toBe(false);
       expect(body.userFriendlyMessage).toContain("Gemini API key is not configured");
+    });
+  });
+
+  describe("5. Travel Planning & Adaptive Provenance Regression (Feedback Fix Audit)", () => {
+    describe("Prompt 1: 'I want to plan a vacation.'", () => {
+      it("identifies missing destination and generates adaptive destination-selection task without hallucinating locations", () => {
+        const intent = parseTravelIntent("I want to plan a vacation.");
+        expect(intent.isTravel).toBe(true);
+        expect(intent.destination).toBeNull();
+        expect(intent.destinationProvenance).toBe("missing");
+        expect(intent.durationDays).toBeNull();
+        expect(intent.durationProvenance).toBe("missing");
+        expect(intent.partySize).toBeNull();
+        expect(intent.budgetLimit).toBeNull();
+
+        const draft = generateSmartFallbackDraftPlan({ prompt: "I want to plan a vacation." });
+        expect(draft.domain).toBe("travel");
+        expect(draft.tasks).toHaveLength(5);
+
+        // Adaptive task T01
+        expect(draft.tasks[0].id).toBe("T01");
+        expect(draft.tasks[0].title).toBe("Destination & Travel Dates Selection");
+        expect(draft.tasks[0].policy).toBe("fixed");
+        expect(draft.tasks[0].predecessorIds).toHaveLength(0);
+
+        // Missing information prominently alerts user
+        expect(draft.missingInformation.some((m) => m.toLowerCase().includes("destination not specified"))).toBe(true);
+        expect(draft.missingInformation.some((m) => m.toLowerCase().includes("travel dates"))).toBe(true);
+        expect(draft.missingInformation.some((m) => m.toLowerCase().includes("party size"))).toBe(true);
+        expect(draft.assumptions.some((a) => a.toLowerCase().includes("destination unconfirmed"))).toBe(true);
+
+        // Parallel dependencies: T02 & T03 depend on T01 independently
+        expect(draft.tasks[1].predecessorIds).toEqual(["T01"]);
+        expect(draft.tasks[2].predecessorIds).toEqual(["T01"]);
+        expect(draft.tasks[3].predecessorIds).toEqual(["T01"]);
+        expect(draft.tasks[4].predecessorIds).toEqual(["T02", "T03", "T04"]);
+      });
+    });
+
+    describe("Prompt 2: 'Plan a five-day trip to Goa.'", () => {
+      it("recognizes destination and duration, and does NOT ask user to select a destination", () => {
+        const intent = parseTravelIntent("Plan a five-day trip to Goa.");
+        expect(intent.isTravel).toBe(true);
+        expect(intent.destination).toBe("Goa");
+        expect(intent.destinationProvenance).toBe("user_provided");
+        expect(intent.durationDays).toBe(5);
+        expect(intent.durationProvenance).toBe("user_provided");
+        expect(intent.durationHours).toBe(120);
+
+        const draft = generateSmartFallbackDraftPlan({ prompt: "Plan a five-day trip to Goa." });
+        expect(draft.name).toContain("Goa (5 Days)");
+
+        // T01 adapts to Goa and dates confirmation
+        expect(draft.tasks[0].title).toBe("Confirm Travel Dates & Group Details for Goa");
+
+        // MUST NOT ask user to select destination when one was provided
+        expect(draft.missingInformation.some((m) => m.toLowerCase().includes("destination not specified"))).toBe(false);
+        expect(draft.missingInformation.some((m) => m.toLowerCase().includes("select where you want to travel"))).toBe(false);
+
+        // Titles customized for Goa
+        expect(draft.tasks[1].title).toBe("Transit & Transportation to Goa");
+        expect(draft.tasks[2].title).toBe("Lodging & Accommodation in Goa");
+        expect(draft.tasks[3].title).toBe("Goa Sightseeing & Activity Itinerary");
+        expect(draft.tasks[4].title).toBe("Packing & Final Prep for Goa");
+
+        // Canonical conversion succeeds
+        const plan = convertDraftToPlan(draft);
+        expect(plan.tasks).toHaveLength(5);
+        expect(plan.constraints.deadlineHours).toBe(120);
+        expect(plan.constraints.budgetLimit).toBeUndefined(); // Budget was missing, never fabricated as 0
+      });
+    });
+
+    describe("Prompt 3: 'Plan a trip to Goa from 15 November to 20 November.'", () => {
+      it("extracts dates, flags unanchored calendar year, and derives duration without inventing confirmed dates", () => {
+        const intent = parseTravelIntent("Plan a trip to Goa from 15 November to 20 November.");
+        expect(intent.destination).toBe("Goa");
+        expect(intent.dateRange).toEqual({ start: "15 November", end: "20 November" });
+        expect(intent.hasUnanchoredYear).toBe(true);
+        expect(intent.durationDays).toBe(5);
+        expect(intent.durationProvenance).toBe("derived");
+
+        const draft = generateSmartFallbackDraftPlan({
+          prompt: "Plan a trip to Goa from 15 November to 20 November.",
+        });
+
+        // T01 prompts for departure year verification
+        expect(draft.tasks[0].title).toBe("Confirm Departure Year & Traveler Headcount for Goa");
+        expect(
+          draft.missingInformation.some((m) =>
+            m.toLowerCase().includes("calendar year for 15 november–20 november")
+          )
+        ).toBe(true);
+        expect(draft.missingInformation.some((m) => m.toLowerCase().includes("destination not specified"))).toBe(false);
+        expect(draft.assumptions.some((a) => a.toLowerCase().includes("unanchored calendar year"))).toBe(true);
+      });
+    });
+
+    describe("Prompt 4: 'Plan a five-day vacation for four people with a budget of ₹40,000.'", () => {
+      it("preserves user budget and party size, flags missing destination, and scales task estimates", () => {
+        const intent = parseTravelIntent(
+          "Plan a five-day vacation for four people with a budget of ₹40,000."
+        );
+        expect(intent.destination).toBeNull();
+        expect(intent.durationDays).toBe(5);
+        expect(intent.durationProvenance).toBe("user_provided");
+        expect(intent.partySize).toBe(4);
+        expect(intent.partySizeProvenance).toBe("user_provided");
+        expect(intent.budgetLimit).toBe(40000);
+        expect(intent.budgetProvenance).toBe("user_provided");
+
+        const draft = generateSmartFallbackDraftPlan({
+          prompt: "Plan a five-day vacation for four people with a budget of ₹40,000.",
+        });
+
+        expect(draft.name).toContain("Vacation Plan for 4 People (5 Days)");
+        expect(draft.budgetLimit).toBe(40000);
+        expect(draft.budgetProvenance).toBe("user_provided");
+        expect(draft.tasks[0].title).toBe("Select Destination & Travel Dates for 4 People");
+        expect(draft.missingInformation.some((m) => m.toLowerCase().includes("destination not specified"))).toBe(true);
+
+        // Budget allocation matches user-provided ₹40,000
+        const totalEstimatedCost = draft.tasks.reduce((sum, t) => sum + (t.cost || 0), 0);
+        expect(totalEstimatedCost).toBe(40000);
+
+        const plan = convertDraftToPlan(draft);
+        expect(plan.constraints.budgetLimit).toBe(40000);
+      });
+    });
+
+    describe("Prompt 5: 'Plan a three-day trip to Jaipur for two people, leaving next Friday.'", () => {
+      it("extracts Jaipur, party size, and relative date, prompting for exact calendar date verification", () => {
+        const intent = parseTravelIntent(
+          "Plan a three-day trip to Jaipur for two people, leaving next Friday."
+        );
+        expect(intent.destination).toBe("Jaipur");
+        expect(intent.destinationProvenance).toBe("user_provided");
+        expect(intent.durationDays).toBe(3);
+        expect(intent.partySize).toBe(2);
+        expect(intent.partySizeProvenance).toBe("user_provided");
+        expect(intent.relativeDate).toBe("leaving next Friday");
+
+        const draft = generateSmartFallbackDraftPlan({
+          prompt: "Plan a three-day trip to Jaipur for two people, leaving next Friday.",
+        });
+
+        expect(draft.tasks[0].title).toContain("Confirm Exact Calendar Date for 'leaving next Friday' Departure to Jaipur");
+        expect(
+          draft.missingInformation.some((m) =>
+            m.toLowerCase().includes("relative departure date 'leaving next friday' requires specific calendar date")
+          )
+        ).toBe(true);
+        expect(draft.missingInformation.some((m) => m.toLowerCase().includes("destination not specified"))).toBe(false);
+        expect(draft.assumptions.some((a) => a.toLowerCase().includes("relative departure date"))).toBe(true);
+
+        expect(draft.tasks[1].title).toBe("Transit & Transportation to Jaipur");
+        expect(draft.tasks[2].title).toBe("Lodging & Accommodation in Jaipur");
+        expect(draft.tasks[3].title).toBe("Jaipur Sightseeing & Activity Itinerary");
+        expect(draft.tasks[4].title).toBe("Packing & Final Prep for Jaipur");
+      });
+    });
+
+    describe("Pipeline Provenance & Conversion Rigor", () => {
+      it("convertDraftToPlan strictly throws when task cost or duration is unresolved (missing)", () => {
+        const incompleteDraft: DraftPlan = {
+          name: "Incomplete Draft",
+          goal: "Testing unresolved fields",
+          domain: "travel",
+          currency: "INR",
+          budgetProvenance: "missing",
+          deadlineProvenance: "missing",
+          tasks: [
+            {
+              id: "T01",
+              title: "Uncosted Task",
+              cost: null,
+              costProvenance: "missing",
+              durationHours: 12,
+              durationProvenance: "ai_estimate",
+              priority: 3,
+              priorityProvenance: "user_provided",
+              policy: "flexible",
+              policyProvenance: "user_provided",
+              predecessorIds: [],
+              dependenciesProvenance: "user_provided",
+            },
+          ],
+          assumptions: [],
+          missingInformation: [],
+        };
+
+        expect(() => convertDraftToPlan(incompleteDraft)).toThrow(
+          /Cannot convert draft task "T01" to canonical Plan: cost is unresolved/
+        );
+
+        const incompleteDraft2: DraftPlan = {
+          ...incompleteDraft,
+          tasks: [
+            {
+              id: "T01",
+              title: "Undurated Task",
+              cost: 5000,
+              costProvenance: "ai_estimate",
+              durationHours: null,
+              durationProvenance: "missing",
+              priority: 3,
+              priorityProvenance: "user_provided",
+              policy: "flexible",
+              policyProvenance: "user_provided",
+              predecessorIds: [],
+              dependenciesProvenance: "user_provided",
+            },
+          ],
+        };
+
+        expect(() => convertDraftToPlan(incompleteDraft2)).toThrow(
+          /Cannot convert draft task "T01" to canonical Plan: durationHours is unresolved/
+        );
+      });
+
+      it("never fabricates budget or deadline as 0 when omitted by user", () => {
+        const draft = generateSmartFallbackDraftPlan({ prompt: "I want to plan a vacation." });
+        expect(draft.budgetProvenance).toBe("missing");
+        expect(draft.budgetLimit).toBeNull();
+        expect(draft.deadlineProvenance).toBe("missing");
+        expect(draft.deadlineHours).toBeNull();
+
+        const plan = convertDraftToPlan(draft);
+        expect(plan.constraints.budgetLimit).toBeUndefined();
+        expect(plan.constraints.deadlineHours).toBeUndefined();
+      });
+
+      it("preserves canonical campus-tech-fest fixture immutability", async () => {
+        const fs = await import("fs");
+        const path = await import("path");
+        const fixturePath = path.resolve(process.cwd(), "fixtures/planpatch/plan.json");
+        const raw = fs.readFileSync(fixturePath, "utf-8");
+        const parsed = JSON.parse(raw);
+
+        expect(parsed.id).toBe("campus-tech-fest");
+        expect(parsed.name).toBe("Campus Tech Fest");
+        expect(parsed.constraints.budgetLimit).toBe(25000);
+        expect(parsed.constraints.deadlineHours).toBe(288);
+        expect(parsed.tasks).toHaveLength(16);
+      });
     });
   });
 });

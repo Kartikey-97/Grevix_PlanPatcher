@@ -11,7 +11,7 @@ import type { RunRecoveryResult } from "../lib/engine/run-recovery";
 import type { PreferenceProfileKey } from "../lib/schemas/ranking-policy.schema";
 import { getCanonicalPlan, getCanonicalScenariosDoc } from "../data/load-demo-fixtures";
 import { PlanOverview } from "./PlanOverview";
-import { DisruptionInput } from "./DisruptionInput";
+import { DisruptionInput, CANONICAL_EXAMPLE_PROMPTS } from "./DisruptionInput";
 import { InterpretationReview } from "./InterpretationReview";
 import { RecoveryComparison } from "./RecoveryComparison";
 import { DiffViewer } from "./DiffViewer";
@@ -136,6 +136,8 @@ export function PlanPatchWorkspace() {
     setGlobalError(null);
   };
 
+  const [retryCount, setRetryCount] = useState<number>(0);
+
   // 1. Analyze prompt with Gemini interpreter via /api/interpret-disruption
   const handleAnalyzePrompt = async (
     prompt: string,
@@ -150,6 +152,18 @@ export function PlanPatchWorkspace() {
 
     const activeHistory = history ?? conversationHistory;
 
+    // Check if this matches a canonical example card on the demo plan
+    const isDemo = planMode === "demo";
+    const matchedCanonical = isDemo
+      ? CANONICAL_EXAMPLE_PROMPTS.find(
+          (ex) =>
+            (scenarioId && ex.scenarioId === scenarioId) ||
+            ex.prompt.toLowerCase() === prompt.trim().toLowerCase() ||
+            (ex.scenarioId === "S3-deadline-moved-earlier" &&
+              prompt.trim().toLowerCase().includes("two days earlier"))
+        )
+      : undefined;
+
     try {
       const res = await fetch("/api/interpret-disruption", {
         method: "POST",
@@ -162,7 +176,39 @@ export function PlanPatchWorkspace() {
       });
 
       const data = (await res.json()) as InterpretationResult;
+
+      // If the API failed (quota, rate limit, timeout, 500, etc.)
+      if (!res.ok || data.status === "error") {
+        if (matchedCanonical) {
+          // Automatic offline fallback ONLY for unambiguous built-in example cards
+          setActiveScenarioId(matchedCanonical.scenarioId);
+          setInterpretationResult({
+            status: "success",
+            disruption: matchedCanonical.fallbackDisruption,
+            originalPrompt: prompt,
+            reasoning: "Loaded from canonical offline scenario because Gemini was unavailable.",
+            isOfflineFallback: true,
+            offlineNotice: "Gemini is temporarily unavailable. Switched to the offline demo scenario.",
+          });
+          const newHistory: ConversationMessage[] = [
+            ...activeHistory,
+            { role: "user", content: prompt },
+            {
+              role: "assistant",
+              content: `[Offline Demo Scenario]: Gemini was temporarily unavailable. Switched to canonical scenario (${matchedCanonical.label}).`,
+            },
+          ];
+          setConversationHistory(newHistory.slice(-10));
+          return;
+        }
+
+        // Custom inputs stay in the error state, preserve prompt, offer retry & manual/offline options
+        setInterpretationResult(data);
+        return;
+      }
+
       setInterpretationResult(data);
+      setRetryCount(0); // Reset retry count on success
 
       // Append turns to conversation history (bounded to 10)
       const newHistory: ConversationMessage[] = [
@@ -182,16 +228,77 @@ export function PlanPatchWorkspace() {
       }
       setConversationHistory(newHistory.slice(-10));
     } catch (err: unknown) {
+      if (matchedCanonical) {
+        // Automatic offline fallback on network interruption for canonical examples
+        setActiveScenarioId(matchedCanonical.scenarioId);
+        setInterpretationResult({
+          status: "success",
+          disruption: matchedCanonical.fallbackDisruption,
+          originalPrompt: prompt,
+          reasoning: "Loaded from canonical offline scenario because Gemini was unavailable.",
+          isOfflineFallback: true,
+          offlineNotice: "Gemini is temporarily unavailable. Switched to the offline demo scenario.",
+        });
+        const newHistory: ConversationMessage[] = [
+          ...activeHistory,
+          { role: "user", content: prompt },
+          {
+            role: "assistant",
+            content: `[Offline Demo Scenario]: Network connection interrupted. Switched to canonical scenario (${matchedCanonical.label}).`,
+          },
+        ];
+        setConversationHistory(newHistory.slice(-10));
+        return;
+      }
+
       const msg =
         err instanceof Error ? err.message : "Failed to interpret disruption.";
       setInterpretationResult({
         status: "error",
         error: `Network or server failure: ${msg}`,
+        userFriendlyMessage:
+          "The AI request timed out or experienced a network connection problem. Please check your network and retry.",
+        category: "NETWORK_OR_TIMEOUT",
+        canRetry: true,
         originalPrompt: prompt,
       });
     } finally {
       setIsInterpreting(false);
     }
+  };
+
+  const handleRetryPrompt = async (originalPrompt: string) => {
+    if (retryCount >= 3) {
+      setGlobalError("Maximum retry attempts reached (3). Please modify your prompt or use pre-configured scenarios.");
+      return;
+    }
+    setRetryCount((prev) => prev + 1);
+    await handleAnalyzePrompt(originalPrompt, activeScenarioId, conversationHistory);
+  };
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    if (suggestion.includes("Venue Cancellation")) {
+      const s1 = CANONICAL_EXAMPLE_PROMPTS.find((p) => p.scenarioId === "S1-venue-cancelled");
+      if (s1) {
+        handleDirectScenarioSelect(s1.scenarioId, s1.fallbackDisruption);
+        return;
+      }
+    }
+    if (suggestion.includes("Budget Cut")) {
+      const s2 = CANONICAL_EXAMPLE_PROMPTS.find((p) => p.scenarioId === "S2-budget-cut");
+      if (s2) {
+        handleDirectScenarioSelect(s2.scenarioId, s2.fallbackDisruption);
+        return;
+      }
+    }
+    if (suggestion.includes("Deadline")) {
+      const s3 = CANONICAL_EXAMPLE_PROMPTS.find((p) => p.scenarioId === "S3-deadline-moved-earlier");
+      if (s3) {
+        handleDirectScenarioSelect(s3.scenarioId, s3.fallbackDisruption);
+        return;
+      }
+    }
+    handleAnalyzePrompt(suggestion);
   };
 
   // 2. Direct canonical scenario select (offline quick load)
@@ -555,7 +662,8 @@ export function PlanPatchWorkspace() {
                 onConfirm={handleRunRecovery}
                 onCancel={() => setInterpretationResult(null)}
                 isRunningRecovery={isRunningRecovery}
-                onSelectSuggestion={(sug) => handleAnalyzePrompt(sug)}
+                onSelectSuggestion={handleSuggestionSelect}
+                onRetry={handleRetryPrompt}
               />
             )}
 

@@ -20,6 +20,7 @@
 - **Direct Feedback Quotes:**
   1. *"Hi, I saw your project PlanPatch and the dark mode still has the light mode components in it."*
   2. *"And I tried using the demo and the timeline wasn't forming properly"*
+  3. *"bruh... it never asked me the destination ... it made a plan but for what...?"*
 
 ---
 
@@ -34,6 +35,11 @@
 ### Problem B: Incomplete Dark Mode Theme Propagation
 1. **Light Component Leakage:** While the landing page featured a dark editorial aesthetic, several workspace components (`DiffViewer`, `CustomPlanBuilder`, `PlanOverview`, `DisruptionInput`, `RecoveryComparison`, `InterpretationReview`) maintained hardcoded light surfaces (`bg-white`, `border-slate-200`, `text-slate-900`), creating jarring high-contrast white boxes inside dark mode.
 2. **Timeline Visual Disconnect:** In dark mode, the timeline grid, axes, headers, and inspector panels remained stark white.
+
+### Problem C: Ungrounded Intent & Missing Entity Guidance in Plan Generation
+1. **Ungrounded Travel Prompts:** When a user entered a prompt like *"I want to plan a vacation"* without naming a destination city, standard generative models hallucinate fake destinations (e.g. Paris or Goa).
+2. **Missing Discovery Stage:** Without an explicit Travel domain fallback, PlanPatch mapped ungrounded requests to generic software/event steps or drafted tasks without clearly flagging why the destination was unconfirmed.
+3. **Provenance Blindspot:** Users were not informed that PlanPatch purposefully does *not* invent real-world locations, leading to confusion (*"it made a plan but for what...?"*).
 
 ---
 
@@ -56,9 +62,48 @@
 - **`CustomPlanBuilder.tsx`:** Added `useTheme()` hook; styled the AI Guided prompt box, Software Template cards, provenance tags, and full manual matrix table editor.
 - **`InterpretationReview.tsx`:** Themed parameter extraction cards and confirmation dialogs.
 
+### Improvement 3: Anti-Hallucination Entity Guard & Missing Destination Provenance
+- **Never Hallucinate Locations:** Enforced in `DRAFT_PLAN_SYSTEM_INSTRUCTION` (Rule 13) that PlanPatch must never invent unstated real-world locations or venues.
+- **Dedicated Travel Domain Fallback:** Added a structured 5-stage travel pipeline (`Destination & Travel Dates Selection`, `Transit Booking`, `Lodging Booking`, `Daily Activities`, `Packing & Prep`) where transit and lodging depend strictly on confirming the destination first in T01.
+- **Honest Provenance Alerts:** Highlighted missing destinations and unstated constraints prominently in an amber alert box on the review screen (`Actionable Missing Information`).
+- **Interactive Vacation Chip & Input Tip:** Added a 1-click `Vacation / Travel Trip` prompt chip and input guidance helping users supply specific destination parameters upfront.
+
 ---
 
-## 4. Verification & Validation
-- **Unit Test Suite:** All **352 tests** across 28 test suites passed (`vitest`).
-- **Production Build:** `next build` compiled cleanly with 0 TypeScript and 0 ESLint errors.
-- **User Experience Verification:** Switching between Light and Dark themes now maintains 100% aesthetic consistency across every view, modal, and chart.
+## 5. Challenge 3: Reliability, Recovery Alternatives & Quota Protection
+
+### Reported Tester Feedback
+1. **Raw Gemini Quota Errors:** Clicking "Analyze Change" on built-in example prompts produced raw Gemini quota/high-demand errors instead of friendly notices.
+2. **"Retry request" Button Bug:** The retry action sent its own button label (`"Retry request"`) as the disruption prompt instead of resubmitting the original user input.
+3. **No Feasible Recovery Winner Found on Custom Cooking Plan:** Generating a cooking plan and testing disruptions resulted in "No Feasible Recovery Winner Found" because draft plans lacked useful declared alternatives.
+4. **Misleading Deadline Wording:** The example card stated "Deadline moved 2 days earlier" while changing the deadline from 288h to 120h (which is 168h = 7 days earlier).
+5. **Lack of Server-Side Rate Limiting:** The Gemini API endpoints lacked server-side rate limiting and input size bounding.
+
+### Implementations & Improvements
+- **Typed Safe Error Handling & Client Rendering (`src/lib/server/rate-limiter.ts`, `src/lib/ai/disruption-interpreter.ts`, `src/components/InterpretationReview.tsx`):**
+  - Errors are safely categorized (`RATE_LIMIT_OR_OVERLOAD`, `AUTH_OR_CONFIG_MISSING`, `INVALID_MODEL_OUTPUT`, etc.) with user-friendly remediation messages.
+  - Client suppresses raw stack traces, API keys, and model internals in favour of clean, actionable guidance.
+- **Fixed Retry Handler & Decoupled Prompt Representation (`src/components/PlanPatchWorkspace.tsx`, `src/components/InterpretationReview.tsx`, `src/components/DisruptionInput.tsx`):**
+  - Stored `originalPrompt` independently on interpretation state.
+  - Clicking "Retry Request" resubmits the exact original user prompt with bounded retry counts ($\le 3$).
+  - Removed "Retry request" label from fallback suggestions catalog.
+- **Graceful Offline Fallback for Canonical Example Cards (`src/components/PlanPatchWorkspace.tsx`):**
+  - When Gemini encounters high demand or quota exhaustion while analyzing one of the three canonical cards (S1, S2, S3), PlanPatch automatically switches to the matching verified offline fixture and displays a clear notice: *"Gemini is temporarily unavailable. Switched to the offline demo scenario."*
+  - Custom free-form prompts preserve the user's input and error state without fabricated mappings.
+- **Recovery Alternatives in Plan Drafts (`src/lib/schemas/draft-plan.schema.ts`, `src/lib/ai/draft-plan-interpreter.ts`, `src/components/CustomPlanBuilder.tsx`):**
+  - Added `DraftTaskAlternativeSchema` and `alternatives` array to draft tasks, mapped into `task.alternatives` and `plan.demoAlternatives` during conversion.
+  - System instructions require the model to declare realistic recovery alternatives with cost, duration, and uncertainty provenance for critical tasks.
+  - Provided interactive alternatives management in `CustomPlanBuilder` review mode (adding, removing, and toggling suggested vs confirmed status).
+  - Pre-seeded culinary fallback plan with alternatives (`alt-t02-pantry-searing`, `alt-t02-express-saute`, `alt-t03-quick-pan-sauce`, `alt-t04-skillet-roast`), enabling deterministic recovery for task unavailability, budget cuts, and tightened deadlines.
+- **Corrected Deadline Wording (`src/components/DisruptionInput.tsx`):**
+  - Updated card title, prompt text, and badge description from "Deadline moved 2 days earlier" to `"Deadline Tightened to 120h (7 Days Earlier)"`.
+- **Server-Side Sliding-Window Rate Limiting & Bounds Checking (`src/lib/server/rate-limiter.ts`, route handlers):**
+  - Implemented sliding-window rate limiters with client identifier extraction (`x-forwarded-for`, `x-real-ip`).
+  - Emits HTTP 429 with standard `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers.
+  - Implemented strict payload bounds checking (prompt max 4,000 characters; history max 20 turns, 3,000 chars per turn).
+
+### Verification
+- **All 376 tests passing** across 30 test suites (`vitest`).
+- **TypeScript `--noEmit`**: 0 errors.
+- **Next.js Production Build**: Succeeded (`next build`).
+- **Fixture Verification**: `python3 fixtures/planpatch/verify_fixtures.py` passed with 100% fixture immutability.

@@ -59,6 +59,8 @@ export type InterpretationResult =
       reasoning?: string;
       originalPrompt: string;
       followUpSuggestions?: string[];
+      isOfflineFallback?: boolean;
+      offlineNotice?: string;
     }
   | {
       status: "clarification_needed";
@@ -460,7 +462,7 @@ User Disruption Report:
       fallbackSuggestions: [
         "Load Venue Cancellation offline",
         "Load Budget Cut offline",
-        "Retry request",
+        "Load Deadline Change offline",
       ],
       originalPrompt,
     };
