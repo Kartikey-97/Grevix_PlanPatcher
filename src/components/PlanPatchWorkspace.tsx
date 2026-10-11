@@ -152,17 +152,59 @@ export function PlanPatchWorkspace() {
 
     const activeHistory = history ?? conversationHistory;
 
-    // Check if this matches a canonical example card on the demo plan
+    // Check if this matches an example card on the demo plan or custom plan
     const isDemo = planMode === "demo";
-    const matchedCanonical = isDemo
-      ? CANONICAL_EXAMPLE_PROMPTS.find(
-          (ex) =>
-            (scenarioId && ex.scenarioId === scenarioId) ||
-            ex.prompt.toLowerCase() === prompt.trim().toLowerCase() ||
-            (ex.scenarioId === "S3-deadline-moved-earlier" &&
-              prompt.trim().toLowerCase().includes("two days earlier"))
-        )
-      : undefined;
+    const customExamples = !isDemo && baselinePlan ? [
+      {
+        scenarioId: "custom-task-unavailable",
+        prompt: `Task ${baselinePlan.tasks.find((t) => t.policy !== "fixed")?.id ?? "T01"} (${baselinePlan.tasks.find((t) => t.policy !== "fixed")?.title ?? "Task"}) is no longer available.`,
+        fallbackDisruption: {
+          type: "task_unavailable" as const,
+          targetTaskId: baselinePlan.tasks.find((t) => t.policy !== "fixed")?.id ?? "T01",
+          field: "bookingStatus",
+          newValue: "unavailable",
+          description: `Task ${baselinePlan.tasks.find((t) => t.policy !== "fixed")?.id ?? "T01"} cancelled.`,
+        },
+        label: `Task ${baselinePlan.tasks.find((t) => t.policy !== "fixed")?.id ?? "T01"} Unavailable`,
+      },
+      {
+        scenarioId: "custom-budget-cut",
+        prompt: `Reduce our overall budget to ₹${Math.max(1000, Math.round((baselinePlan.constraints.budgetLimit ?? 50000) * 0.75))}.`,
+        fallbackDisruption: {
+          type: "budget_changed" as const,
+          field: "budgetLimit",
+          oldValue: baselinePlan.constraints.budgetLimit ?? 50000,
+          newValue: Math.max(1000, Math.round((baselinePlan.constraints.budgetLimit ?? 50000) * 0.75)),
+          description: `Budget reduced to ₹${Math.max(1000, Math.round((baselinePlan.constraints.budgetLimit ?? 50000) * 0.75))}.`,
+        },
+        label: "Budget Cut",
+      },
+      {
+        scenarioId: "custom-deadline-shift",
+        prompt: `The project deadline has moved to ${Math.max(10, Math.round((baselinePlan.constraints.deadlineHours ?? 100) * 0.8))} hours.`,
+        fallbackDisruption: {
+          type: "deadline_changed" as const,
+          field: "deadlineHours",
+          oldValue: baselinePlan.constraints.deadlineHours ?? 100,
+          newValue: Math.max(10, Math.round((baselinePlan.constraints.deadlineHours ?? 100) * 0.8)),
+          description: `Deadline tightened to ${Math.max(10, Math.round((baselinePlan.constraints.deadlineHours ?? 100) * 0.8))} hours.`,
+        },
+        label: "Deadline Shift",
+      },
+    ] : [];
+
+    const activeCards = isDemo ? CANONICAL_EXAMPLE_PROMPTS : customExamples;
+    const matchedCanonical = activeCards.find(
+      (ex) =>
+        (scenarioId && ex.scenarioId === scenarioId) ||
+        ex.prompt.toLowerCase() === prompt.trim().toLowerCase() ||
+        (isDemo &&
+          ex.scenarioId === "S3-deadline-moved-earlier" &&
+          prompt.trim().toLowerCase().includes("two days earlier")) ||
+        (!isDemo &&
+          ex.scenarioId === "custom-task-unavailable" &&
+          prompt.toLowerCase().includes("no longer available"))
+    );
 
     try {
       const res = await fetch("/api/interpret-disruption", {
@@ -297,6 +339,41 @@ export function PlanPatchWorkspace() {
         handleDirectScenarioSelect(s3.scenarioId, s3.fallbackDisruption);
         return;
       }
+    }
+    if (suggestion.includes("Unavailable offline")) {
+      const targetTask = baselinePlan.tasks.find((t) => t.policy !== "fixed") || baselinePlan.tasks[0];
+      handleDirectScenarioSelect("custom-task-unavailable", {
+        type: "task_unavailable",
+        targetTaskId: targetTask?.id ?? "T02",
+        field: "bookingStatus",
+        newValue: "unavailable",
+        description: `Task ${targetTask?.id ?? "T02"} cancelled.`,
+      });
+      return;
+    }
+    if (suggestion.includes("Reduce Budget offline")) {
+      const budgetLimit = baselinePlan.constraints.budgetLimit ?? 50000;
+      const reducedBudget = Math.max(1000, Math.round(budgetLimit * 0.75));
+      handleDirectScenarioSelect("custom-budget-cut", {
+        type: "budget_changed",
+        field: "budgetLimit",
+        oldValue: budgetLimit,
+        newValue: reducedBudget,
+        description: `Budget reduced to ₹${reducedBudget}.`,
+      });
+      return;
+    }
+    if (suggestion.includes("Tighten Deadline offline")) {
+      const deadlineHours = baselinePlan.constraints.deadlineHours ?? 100;
+      const reducedDeadline = Math.max(10, Math.round(deadlineHours * 0.8));
+      handleDirectScenarioSelect("custom-deadline-shift", {
+        type: "deadline_changed",
+        field: "deadlineHours",
+        oldValue: deadlineHours,
+        newValue: reducedDeadline,
+        description: `Deadline tightened to ${reducedDeadline} hours.`,
+      });
+      return;
     }
     handleAnalyzePrompt(suggestion);
   };

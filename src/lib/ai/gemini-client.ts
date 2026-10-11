@@ -183,9 +183,13 @@ export class DefaultGeminiClient implements GeminiModelClient {
       throw new Error("GEMINI_API_KEY environment variable is not configured on the server.");
     }
     const envModel = process.env.GEMINI_MODEL;
-    let selectedModel = options?.model ?? envModel ?? "gemini-3.8-flash";
-    if (selectedModel === "gemini-flash-latest" || selectedModel === "gemini-2.5-flash") {
-      selectedModel = "gemini-3.8-flash";
+    let selectedModel = options?.model ?? envModel ?? "gemini-3.5-flash-lite";
+    if (
+      selectedModel === "gemini-flash-latest" ||
+      selectedModel === "gemini-2.5-flash" ||
+      selectedModel === "gemini-3.8-flash"
+    ) {
+      selectedModel = "gemini-3.5-flash-lite";
     }
     this.apiKey = key;
     this.model = selectedModel;

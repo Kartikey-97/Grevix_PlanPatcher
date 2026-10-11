@@ -459,11 +459,18 @@ User Disruption Report:
       userFriendlyMessage: classified.userMessage,
       category: classified.category,
       canRetry: classified.canRetry,
-      fallbackSuggestions: [
-        "Load Venue Cancellation offline",
-        "Load Budget Cut offline",
-        "Load Deadline Change offline",
-      ],
+      fallbackSuggestions:
+        input.plan.domain === "event-planning" || input.plan.id === "campus-tech-fest"
+          ? [
+              "Load Venue Cancellation offline",
+              "Load Budget Cut offline",
+              "Load Deadline Change offline",
+            ]
+          : [
+              `Mark ${input.plan.tasks.find((t) => t.policy !== "fixed")?.id ?? "T02"} Unavailable offline`,
+              "Reduce Budget offline",
+              "Tighten Deadline offline",
+            ],
       originalPrompt,
     };
   } finally {
